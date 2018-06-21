@@ -3,8 +3,14 @@ DNS leak test shows your real DNS servers. If you use VPN or other privacy tool 
                                                                                                            
 ## How to install & use                                                                                  
 
+```
 wget https://raw.githubusercontent.com/macvk/dnsleaktest/master/dnsleaktest.py
+```
 
+```
 chmod +x dnsleaktest.py
+```
 
+```
 ./dnsleaktest.py
+```
