@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 # encoding=utf-8
 # Any questions: tutumbul@gmail.com
+# https://bash.ws/dnsleak
 
 import os
 import subprocess
