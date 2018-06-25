@@ -35,7 +35,10 @@ parsed_data = json.loads(data)
 print("Detected DNS servers:")
 for dns_server in parsed_data:
     if dns_server['country_name']:
-        print dns_server['ip']+" ("+dns_server['country_name']+")"
+        if dns_server['asn']:
+            print dns_server['ip']+" ["+dns_server['country_name']+", "+dns_server['asn']+"]"
+        else:
+            print dns_server['ip']+" ["+dns_server['country_name']+"]"
     else:
         print dns_server['ip']
     
