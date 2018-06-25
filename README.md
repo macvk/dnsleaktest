@@ -32,3 +32,20 @@ powershell -command "& { (New-Object Net.WebClient).DownloadFile('https://raw.gi
 ```
 dnsleaktest.bat
 ```
+
+### macOS
+
+1. Download dnsleaktest.py
+
+```
+curl https://raw.githubusercontent.com/macvk/dnsleaktest/master/dnsleaktest.py -o dnsleaktest.py
+```
+
+```
+chmod +x dnsleaktest.py
+```
+
+2. Run dnsleaktest.bat
+```
+./dnsleaktest.py
+```
