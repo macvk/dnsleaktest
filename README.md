@@ -4,6 +4,7 @@ In the case of VPN or other privacy tool it would be a good idea to check if you
                                                                                                            
 ## How to install & use                                                                                  
 
+### Linux
 ```
 wget https://raw.githubusercontent.com/macvk/dnsleaktest/master/dnsleaktest.py
 ```
@@ -14,4 +15,14 @@ chmod +x dnsleaktest.py
 
 ```
 ./dnsleaktest.py
+```
+
+### Windows
+
+```
+powershell -command "& { (New-Object Net.WebClient).DownloadFile('https://raw.githubusercontent.com/macvk/dnsleaktest/master/dnsleaktest.bat', 'dnsleaktest.bat') }"
+```
+
+```
+dnsleaktest.bat
 ```
