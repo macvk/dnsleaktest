@@ -45,7 +45,7 @@ curl https://raw.githubusercontent.com/macvk/dnsleaktest/master/dnsleaktest.py -
 chmod +x dnsleaktest.py
 ```
 
-2. Run dnsleaktest.bat
+2. Run dnsleaktest.py
 ```
 ./dnsleaktest.py
 ```
