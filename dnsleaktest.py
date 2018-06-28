@@ -32,13 +32,25 @@ response = urlopen("https://bash.ws/dnsleak/test/"+str(leak_id)+"?json")
 data = response.read().decode("utf-8")
 parsed_data = json.loads(data)
 
+print("Your IP:")
+for dns_server in parsed_data:
+    if dns_server['type'] == "ip":
+        if dns_server['country_name']:
+            if dns_server['asn']:
+                print dns_server['ip']+" ["+dns_server['country_name']+", "+dns_server['asn']+"]"
+            else:
+                print dns_server['ip']+" ["+dns_server['country_name']+"]"
+        else:
+            print dns_server['ip']
+        
 print("Detected DNS servers:")
 for dns_server in parsed_data:
-    if dns_server['country_name']:
-        if dns_server['asn']:
-            print dns_server['ip']+" ["+dns_server['country_name']+", "+dns_server['asn']+"]"
+    if dns_server['type'] == "dns":
+        if dns_server['country_name']:
+            if dns_server['asn']:
+                print dns_server['ip']+" ["+dns_server['country_name']+", "+dns_server['asn']+"]"
+            else:
+                print dns_server['ip']+" ["+dns_server['country_name']+"]"
         else:
-            print dns_server['ip']+" ["+dns_server['country_name']+"]"
-    else:
-        print dns_server['ip']
+            print dns_server['ip']
     
