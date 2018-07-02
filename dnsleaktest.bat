@@ -45,4 +45,13 @@ for /f "tokens=1,2,3,4,5 delims=|" %%1 in (%leak_id%.txt) do (
     )
 )
 
+echo Conclusion:
+for /f "tokens=1,2,3,4,5 delims=|" %%1 in (%leak_id%.txt) do (
+    if "%%5" == "conclusion" (
+        if [%%1] neq [] (
+            echo %%1
+        ) 
+    )
+)
+
 del /q %leak_id%.txt

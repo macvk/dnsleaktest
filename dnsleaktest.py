@@ -53,4 +53,10 @@ for dns_server in parsed_data:
                 print dns_server['ip']+" ["+dns_server['country_name']+"]"
         else:
             print dns_server['ip']
+
+print("Conclusion:")
+for dns_server in parsed_data:
+    if dns_server['type'] == "conclusion":
+        if dns_server['ip']:
+            print dns_server['ip']
     
