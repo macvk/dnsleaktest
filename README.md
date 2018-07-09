@@ -1,5 +1,5 @@
-# dnsleaktest
-Are your DNS queries leaking outside your VPN? Do you know your external IP? Do you know your ASN? The test will show you.
+# Dns Leak Test
+The test shows DNS leaks and your external IP.
                                                                                                            
 ## How to install & use                                                                                  
 
