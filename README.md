@@ -1,5 +1,5 @@
 # Dns Leak Test
-The test shows DNS leaks and your external IP. If you use the same ASN for DNS and connection - no leak here, otherwise here might be a problem.
+The test shows DNS leaks and your external IP. If you use the same ASN for DNS and connection - you have no leak, otherwise here might be a problem.
                                                                                                            
 ## How to install & use                                                                                  
 
