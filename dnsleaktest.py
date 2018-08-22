@@ -42,18 +42,27 @@ for dns_server in parsed_data:
                 print dns_server['ip']+" ["+dns_server['country_name']+"]"
         else:
             print dns_server['ip']
-        
-print("Detected DNS servers:")
+
+servers = 0
 for dns_server in parsed_data:
     if dns_server['type'] == "dns":
-        if dns_server['country_name']:
-            if dns_server['asn']:
-                print dns_server['ip']+" ["+dns_server['country_name']+", "+dns_server['asn']+"]"
-            else:
-                print dns_server['ip']+" ["+dns_server['country_name']+"]"
-        else:
-            print dns_server['ip']
+        servers = servers + 1
 
+if servers == 0:
+    print("Detected DNS servers:")
+    print("No DNS servers found")
+else:
+    print("Detected "+str(servers)+" DNS servers:")
+    for dns_server in parsed_data:
+        if dns_server['type'] == "dns":
+            if dns_server['country_name']:
+                if dns_server['asn']:
+                    print dns_server['ip']+" ["+dns_server['country_name']+", "+dns_server['asn']+"]"
+                else:
+                    print dns_server['ip']+" ["+dns_server['country_name']+"]"
+            else:
+                print dns_server['ip']
+    
 print("Conclusion:")
 for dns_server in parsed_data:
     if dns_server['type'] == "conclusion":
