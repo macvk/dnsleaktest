@@ -37,10 +37,9 @@ for /f "tokens=1,2,3,4,5 delims=|" %%1 in (%leak_id%.txt) do (
 )
 
 if "%servers%" == "0" (
-    echo Detected DNS servers:
     echo No DNS servers found
 ) else (
-    echo Detected %servers% DNS servers:
+    echo You use %servers% DNS servers:
     for /f "tokens=1,2,3,4,5 delims=|" %%1 in (%leak_id%.txt) do (
         if "%%5" == "dns" (
             if [%%1] neq [] (
