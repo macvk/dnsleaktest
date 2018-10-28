@@ -2,7 +2,8 @@ matrix:
   include:
      - language: go
        os: linux
-       script: dnsleaktest.go
+       gobuild_args: -o dnsleaktest dnsleaktest.go
+       script: dnsleaktest
 
      - language: go
        os: macos
