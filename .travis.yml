@@ -5,19 +5,3 @@ matrix:
        gobuild_args: -o dnsleaktest dnsleaktest.go
        script: dnsleaktest
 
-     - language: go
-       os: macos
-       script: dnsleaktest.go
-
-     - language: go
-       os: windows
-       script: dnsleaktest.go
-
-       deploy:
-         provider: releases
-         api_key: ${GITHUB_OAUTH_TOKEN}
-         file: dnsleaktest.tar.gz
-         skip_cleanup: true
-         on:
-           tags: true
-           repo: macvk/dnsleaktest
