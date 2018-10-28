@@ -1,22 +1,22 @@
 matrix:
-	include:
-		- language: go
-		os: linux
-		script: dnsleaktest.go
+  include:
+     - language: go
+       os: linux
+       script: dnsleaktest.go
 
-		- language: go
-		os: macos
-		script: dnsleaktest.go
+     - language: go
+       os: macos
+       script: dnsleaktest.go
 
-		- language: go
-		os: windows
-		script: dnsleaktest.go
+     - language: go
+       os: windows
+       script: dnsleaktest.go
 
-		deploy:
-			provider: releases
-			api_key: ${GITHUB_OAUTH_TOKEN}
-			file: dnsleaktest.tar.gz
-			skip_cleanup: true
-			on:
-				tags: true
-				repo: macvk/dnsleaktest
+       deploy:
+         provider: releases
+         api_key: ${GITHUB_OAUTH_TOKEN}
+         file: dnsleaktest.tar.gz
+         skip_cleanup: true
+         on:
+           tags: true
+           repo: macvk/dnsleaktest
