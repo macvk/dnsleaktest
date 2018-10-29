@@ -54,7 +54,7 @@ chmod +x dnsleaktest.py
 
 ## How to build & use Golang Version                                                                                  
 
-1. Download executable binary for Linux, MacOs or Windows without build:
+1. Download executable binary for Linux, MacOs or Windows without build [latest build by travis-ci]:
 
 ### Linux
 
@@ -74,7 +74,7 @@ chmod +x dnsleaktest
 1. Download [dnsleaktest.exe v.1.1](https://github.com/macvk/dnsleaktest/releases/download/v1.1/dnsleaktest.exe)
 
 2. Run dnsleaktest.exe, 
-open cmd then navigate to the exe file  
+open cmd then navigate to the exe file
 ```
 dnsleaktest.exe
 ```
