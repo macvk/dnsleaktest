@@ -1,0 +1,15 @@
+matrix:
+  include:
+     - language: go
+       os: linux
+       deploy:
+         provider: releases
+         user: "${GITHUB_USERNAME}"
+         password: "${GITHUB_PASSWORD}"
+         file: dnsleaktest.tar.gz
+         skip_cleanup: true
+         on:
+           tags: false
+           repo: macvk/dnsleaktest
+
+
