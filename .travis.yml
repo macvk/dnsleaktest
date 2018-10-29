@@ -2,14 +2,27 @@ matrix:
   include:
      - language: go
        os: linux
+       script: GOOS=windows GOARCH=386 go build -o dnsleaktest.exe dnsleaktest.go
+       before_deploy:
+         export TRAVIS_TAG="$(git describe --abbrev=0 --tags)";
        deploy:
          provider: releases
-         user: "${GITHUB_USERNAME}"
-         password: "${GITHUB_PASSWORD}"
-         file: dnsleaktest.tar.gz
+         api_key: "${GITHUB_OAUTH_TOKEN}"
+         file: dnsleaktest.exe
          skip_cleanup: true
          on:
-           tags: false
            repo: macvk/dnsleaktest
 
-
+     - language: go
+       os: linux
+       script: go build -o dnsleaktest dnsleaktest.go
+       before_deploy:
+         export TRAVIS_TAG="$(git describe --abbrev=0 --tags)";
+       deploy:
+         provider: releases
+         api_key: "${GITHUB_OAUTH_TOKEN}"
+         file: dnsleaktest
+         skip_cleanup: true
+         overwrite: true
+         on:
+           repo: macvk/dnsleaktest
