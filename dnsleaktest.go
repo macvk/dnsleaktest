@@ -33,9 +33,12 @@ func _random(min, max int) int {
 func fakePing() int {
 
 	rSubDomainId1 := _random(1000000, 9999999)
-	rSubDomainId2 := _random(1, 10)
-	initUrl := fmt.Sprintf("https://%d.%d.%s", rSubDomainId2, rSubDomainId1, ApiDomain)
-	http.Get(initUrl)
+
+	for i := 1; i <= 10; i ++ {
+		rSubDomainId2 := i
+		initUrl := fmt.Sprintf("https://%d.%d.%s", rSubDomainId2, rSubDomainId1, ApiDomain)
+		http.Get(initUrl)
+	}
 	return rSubDomainId1
 
 }
@@ -64,22 +67,60 @@ func getResult(id int) []Block {
 	return data
 }
 
+
+func printResult(result []Block, Type string) {
+	for _, Block := range result {
+		if Block.Type != Type {
+			continue
+		}
+
+		if Block.Asn != "" {
+			fmt.Printf("%s [%s, %s]\n", Block.Ip, Block.CountryName, Block.Asn)
+			continue;
+		}
+		
+		if Block.CountryName != "" {
+			fmt.Printf("%s [%s]\n", Block.Ip, Block.CountryName)
+			continue;
+		}
+		
+		if Block.Ip != "" {
+			fmt.Printf("%s\n", Block.Ip)
+		}
+	}
+}
+
 func main() {
 	//create new request to server to get an id fo testing
 	testId := fakePing()
 	//test DNS leak
 	result := getResult(testId)
 	//show the testing result
+	
+	dns := 0
 	for _, Block := range result {
 		switch Block.Type {
 
-		case "ip":
-			fmt.Printf("Your IP: \n%s [%s, %s]\n", Block.Ip, Block.CountryName, Block.Asn)
 		case "dns":
-			fmt.Printf("DNS Server: %s [%s, %s]\n", Block.Ip, Block.CountryName, Block.Asn)
-		case "conclusion":
-			defer fmt.Printf("Conclusion: \n%s\n", Block.Ip)
+			dns ++
 		}
-
 	}
+	
+	fmt.Print("Your IP:\n")
+	printResult(result, "ip")
+	
+	if dns == 0 {
+		fmt.Print("No DNS servers found\n")
+	} else {
+		if dns == 1 {
+			fmt.Printf("You use %d DNS server:\n", dns)
+		} else {
+			fmt.Printf("You use %d DNS servers:\n", dns)
+		}
+		printResult(result, "dns")
+	}
+	
+	fmt.Print("Conclusion:\n")
+	printResult(result, "conclusion")
+	
 }

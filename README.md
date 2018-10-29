@@ -58,7 +58,7 @@ chmod +x dnsleaktest.py
 
 ### Linux
 
-1. Download [dnsleaktest](https://www.dropbox.com/s/aarf10zls3xvu6z/dnsleaktest?dl=0)
+1. Download [dnsleaktest v.1.1](https://github.com/macvk/dnsleaktest/releases/download/v1.1/dnsleaktest)
 
 ```
 chmod +x dnsleaktest
@@ -71,7 +71,7 @@ chmod +x dnsleaktest
 
 ### Windows
 
-1. Download [dnsleaktest.exe](https://www.dropbox.com/s/ubee3tp3c41owcj/dnsleaktest.exe?dl=0)
+1. Download [dnsleaktest.exe v.1.1](https://github.com/macvk/dnsleaktest/releases/download/v1.1/dnsleaktest.exe)
 
 2. Run dnsleaktest.exe, 
 open cmd then navigate to the exe file  
@@ -81,7 +81,7 @@ dnsleaktest.exe
 
 ### macOS
 
-1. Download [dnsleaktest](https://www.dropbox.com/s/aarf10zls3xvu6z/dnsleaktest?dl=0)
+1. Download [dnsleaktest v.1.1](https://github.com/macvk/dnsleaktest/releases/download/v1.1/dnsleaktest)
 
 ```
 chmod +x dnsleaktest
