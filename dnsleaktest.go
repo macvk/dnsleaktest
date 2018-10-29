@@ -46,7 +46,7 @@ func fakePing() int {
 func getResult(id int) []Block {
 
 	getUrl := fmt.Sprintf("https://%s/dnsleak/test/%d?json", ApiDomain, id)
-	// create post request
+	// send GET request
 	res, err := http.Get(getUrl)
 	_pError(err)
 	defer res.Body.Close()
