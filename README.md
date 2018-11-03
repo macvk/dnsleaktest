@@ -58,7 +58,7 @@ You can use prebuilt executable binary for Linux, MacOs or Windows [created by t
 
 ### Linux
 
-1. Download [dnsleaktest v.1.1](https://github.com/macvk/dnsleaktest/releases/download/v1.1/dnsleaktest)
+1. Download [dnsleaktest v1.2](https://github.com/macvk/dnsleaktest/releases/download/v1.2/dnsleaktest)
 
 ```
 chmod +x dnsleaktest
@@ -71,7 +71,7 @@ chmod +x dnsleaktest
 
 ### Windows
 
-1. Download [dnsleaktest.exe v.1.1](https://github.com/macvk/dnsleaktest/releases/download/v1.1/dnsleaktest.exe)
+1. Download [dnsleaktest.exe v1.2](https://github.com/macvk/dnsleaktest/releases/download/v1.2/dnsleaktest.exe)
 
 2. Run dnsleaktest.exe, 
 open cmd then navigate to the exe file
@@ -81,7 +81,7 @@ dnsleaktest.exe
 
 ### macOS
 
-1. Download [dnsleaktest v.1.1](https://github.com/macvk/dnsleaktest/releases/download/v1.1/dnsleaktest)
+1. Download [dnsleaktest v1.2](https://github.com/macvk/dnsleaktest/releases/download/v1.2/dnsleaktest)
 
 ```
 chmod +x dnsleaktest
