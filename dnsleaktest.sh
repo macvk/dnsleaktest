@@ -52,7 +52,7 @@ result=$(curl --silent "https://${api_domain}/dnsleak/test/${id}?json")
 function print_servers {
     jq  --monochrome-output \
         --raw-output        \
-        ".[] | select(.type == \"${1}\") | \"\(.ip) [\(.country_name)\(if .asn != \"\" then \" \(.asn)\" else \"\" end)]\"" \
+        ".[] | select(.type == \"${1}\") | \"\(.ip)\(if .country_name != \"\" and  .country_name != false then \" [\(.country_name)\(if .asn != \"\" and .asn != false then \" \(.asn)\" else \"\" end)]\" else \"\" end)\"" \
         <<< ${result}
 }
 
