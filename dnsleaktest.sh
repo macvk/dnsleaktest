@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 RED='\033[0;31m'
 BOLD='\033[1m'
@@ -41,7 +41,11 @@ program_exit ping
 program_exit jq
 check_internet_connection
 
-id=$(shuf -i 1000000-9999999 -n 1)
+if hash shuf 2>/dev/null; then
+    id=$(shuf -i 1000000-9999999 -n 1)
+else
+    id=$(jot -w %i -r 1 1000000 9999999)
+fi
 
 for i in {1..10};do
     ping -c 1 "${i}.${id}.${api_domain}" > /dev/null 2>&1
