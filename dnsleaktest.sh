@@ -43,24 +43,24 @@ check_internet_connection
 
 id=$(shuf -i 1000000-9999999 -n 1)
 
-for i in {1..10};do
+for i in $(seq 1 10); do
     ping -c 1 "${i}.${id}.${api_domain}" > /dev/null 2>&1
 done
 
 result=$(curl --silent "https://${api_domain}/dnsleak/test/${id}?json")
 
 function print_servers {
-    jq  --monochrome-output \
-        --raw-output        \
-        ".[] | select(.type == \"${1}\") | \"\(.ip)\(if .country_name != \"\" and  .country_name != false then \" [\(.country_name)\(if .asn != \"\" and .asn != false then \" \(.asn)\" else \"\" end)]\" else \"\" end)\"" \
-        <<< ${result}
+    echo ${result} | \
+        jq  --monochrome-output \
+        --raw-output \
+        ".[] | select(.type == \"${1}\") | \"\(.ip)\(if .country_name != \"\" and  .country_name != false then \" [\(.country_name)\(if .asn != \"\" and .asn != false then \" \(.asn)\" else \"\" end)]\" else \"\" end)\""
 }
 
 echo_bold "Your IP:"
 print_servers "ip"
 
 echo ""
-dns_count=$(jq 'map(select(.type == "dns")) | length' <<< ${result})
+dns_count=$(echo ${result} | jq 'map(select(.type == "dns")) | length')
 if [ ${dns_count} -eq "0" ];then
     echo_bold "No DNS servers found"
 else
@@ -74,6 +74,6 @@ fi
 
 echo ""
 echo_bold "Conclusion:"
-jq --monochrome-output --raw-output '.[] | select(.type == "conclusion") | .ip' <<< ${result}
+echo ${result} | jq --monochrome-output --raw-output '.[] | select(.type == "conclusion") | .ip'
 
 exit 0
