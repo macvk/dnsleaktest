@@ -3,7 +3,7 @@ The test shows DNS leaks and your external IP. If you use the same ASN for DNS a
 
 ## How to install & use Bash Version   
 
-Please, before use make sure you have `curl`, `ping` and `jq` installed.
+Please, before use make sure you have `curl` and `ping` installed.
 
 ### Linux & macOS
 
