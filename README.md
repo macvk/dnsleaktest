@@ -1,11 +1,11 @@
 # Dns Leak Test
 The test shows DNS leaks and your external IP. If you use the same ASN for DNS and connection - you have no leak, otherwise here might be a problem.
 
-## How to install & use Bash Version   
+## Linux & macOS 
+
+### How to install & use Bash Version
 
 Please, before use make sure you have `curl` and `ping` installed.
-
-### Linux & macOS
 
 1. Download dnsleaktest.sh
 ```
@@ -21,12 +21,7 @@ chmod +x dnsleaktest.sh
 ./dnsleaktest.sh
 ```
 
-
------------------------------------------------------
-
-## How to install & use Python Version                                                                                  
-
-### Linux & macOS
+### How to install & use Python Version
 
 1. Download dnsleaktest.py
 ```
@@ -42,7 +37,11 @@ chmod +x dnsleaktest.py
 ./dnsleaktest.py
 ```
 
-### Windows
+-----------------------------------------------------
+
+## Windows
+
+### How to install & use batch file
 
 1. Download dnsleaktest.bat
 
@@ -54,8 +53,6 @@ powershell -command "& { (New-Object Net.WebClient).DownloadFile('https://raw.gi
 ```
 dnsleaktest.bat
 ```
-
-
 
 -----------------------------------------------------
 
