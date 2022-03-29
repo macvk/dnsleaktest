@@ -58,9 +58,9 @@ done
 
 function print_servers {
 
-    if (( $jq_exists )); then
+    if (( "$jq_exists" )); then
 
-        echo ${result_json} | \
+        echo "${result_json}" | \
             jq  --monochrome-output \
             --raw-output \
             ".[] | select(.type == \"${1}\") | \"\(.ip)\(if .country_name != \"\" and  .country_name != false then \" [\(.country_name)\(if .asn != \"\" and .asn != false then \" \(.asn)\" else \"\" end)]\" else \"\" end)\""
@@ -72,10 +72,10 @@ function print_servers {
                 continue
             fi
 
-            ip=$(echo $line | cut -d'|' -f 1)
-            code=$(echo $line | cut -d'|' -f 2)
-            country=$(echo $line | cut -d'|' -f 3)
-            asn=$(echo $line | cut -d'|' -f 4)
+            ip=$(echo "$line" | cut -d'|' -f 1)
+            code=$(echo "$line" | cut -d'|' -f 2)
+            country=$(echo "$line" | cut -d'|' -f 3)
+            asn=$(echo "$line" | cut -d'|' -f 4)
 
             if [ -z "${ip// }" ]; then
                  continue
@@ -96,7 +96,7 @@ function print_servers {
 }
 
 
-if (( $jq_exists )); then
+if (( "$jq_exists" )); then
     result_json=$(curl --silent "https://${api_domain}/dnsleak/test/${id}?json")
 else
     result_txt=$(curl --silent "https://${api_domain}/dnsleak/test/${id}?txt")
@@ -108,10 +108,10 @@ echo_bold "Your IP:"
 print_servers "ip"
 
 echo ""
-if [ ${dns_count} -eq "0" ];then
+if [ "${dns_count}" -eq "0" ];then
     echo_bold "No DNS servers found"
 else
-    if [ ${dns_count} -eq "1" ];then
+    if [ "${dns_count}" -eq "1" ];then
         echo_bold "You use ${dns_count} DNS server:"
     else
         echo_bold "You use ${dns_count} DNS servers:"
