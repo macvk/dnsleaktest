@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"math/rand"
 	"net/http"
+	"sync"
 	"time"
 )
 
@@ -32,18 +33,20 @@ func _random(min, max int) int {
 
 func fakePing() int {
 
+	var wg sync.WaitGroup
 	rSubDomainId1 := _random(1000000, 9999999)
 
-	initUrl := fmt.Sprintf("https://%d.%d.%s", 0, rSubDomainId1, ApiDomain)
-	for i := 1; i <= 10; i++ {
-		rSubDomainId2 := i
-		initUrl = fmt.Sprintf("https://%d.%d.%s", rSubDomainId2, rSubDomainId1, ApiDomain)
-		go http.Get(initUrl)
+	for i := 0; i <= 10; i++ {
+		initUrl := fmt.Sprintf("https://%d.%d.%s", i, rSubDomainId1, ApiDomain)
+		wg.Add(1)
+		go func(initUrl string) {
+			defer wg.Done()
+			http.Get(initUrl)
+		}(initUrl)
 	}
-	fmt.Println("initUrl: ", initUrl)
-	http.Get(initUrl)
-	return rSubDomainId1
+	wg.Wait()
 
+	return rSubDomainId1
 }
 
 func getResult(id int) []Block {
