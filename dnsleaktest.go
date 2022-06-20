@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"math/rand"
 	"net/http"
+	"sync"
 	"time"
 )
 
@@ -32,15 +33,20 @@ func _random(min, max int) int {
 
 func fakePing() int {
 
+	var wg sync.WaitGroup
 	rSubDomainId1 := _random(1000000, 9999999)
 
-	for i := 1; i <= 10; i ++ {
-		rSubDomainId2 := i
-		initUrl := fmt.Sprintf("https://%d.%d.%s", rSubDomainId2, rSubDomainId1, ApiDomain)
-		http.Get(initUrl)
+	for i := 0; i <= 10; i++ {
+		initUrl := fmt.Sprintf("https://%d.%d.%s", i, rSubDomainId1, ApiDomain)
+		wg.Add(1)
+		go func(initUrl string) {
+			defer wg.Done()
+			http.Get(initUrl)
+		}(initUrl)
 	}
-	return rSubDomainId1
+	wg.Wait()
 
+	return rSubDomainId1
 }
 
 func getResult(id int) []Block {
@@ -67,7 +73,6 @@ func getResult(id int) []Block {
 	return data
 }
 
-
 func printResult(result []Block, Type string) {
 	for _, Block := range result {
 		if Block.Type != Type {
@@ -76,14 +81,14 @@ func printResult(result []Block, Type string) {
 
 		if Block.Asn != "" {
 			fmt.Printf("%s [%s, %s]\n", Block.Ip, Block.CountryName, Block.Asn)
-			continue;
+			continue
 		}
-		
+
 		if Block.CountryName != "" {
 			fmt.Printf("%s [%s]\n", Block.Ip, Block.CountryName)
-			continue;
+			continue
 		}
-		
+
 		if Block.Ip != "" {
 			fmt.Printf("%s\n", Block.Ip)
 		}
@@ -96,19 +101,19 @@ func main() {
 	//test DNS leak
 	result := getResult(testId)
 	//show the testing result
-	
+
 	dns := 0
 	for _, Block := range result {
 		switch Block.Type {
 
 		case "dns":
-			dns ++
+			dns++
 		}
 	}
-	
+
 	fmt.Print("Your IP:\n")
 	printResult(result, "ip")
-	
+
 	if dns == 0 {
 		fmt.Print("No DNS servers found\n")
 	} else {
@@ -119,8 +124,8 @@ func main() {
 		}
 		printResult(result, "dns")
 	}
-	
+
 	fmt.Print("Conclusion:\n")
 	printResult(result, "conclusion")
-	
+
 }
