@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
-#Usage: ./dnsleaktest.sh [-i interface_ip_address]
+#usage:   ./dnsleaktest.sh [-i interface_ip|interface_name]
+#example: ./dnsleaktest.sh -i eth1
+#         ./dnsleaktest.sh -i 10.0.0.2
 
 RED='\033[0;31m'
 BOLD='\033[1m'
@@ -19,7 +21,7 @@ if [ -z "$interface" ]; then
     ping_interface=""
 else
     curl_interface="--interface ${interface}"
-    ping_interface="-S${interface}"
+    ping_interface="-I ${interface}"
     echo_bold "Interface: ${interface}"
     echo ""
 fi
