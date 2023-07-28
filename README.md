@@ -98,3 +98,11 @@ GOOS=linux GOARCH=386 go build -o dnsleaktest dnsleaktest.go
 GOOS=windows GOARCH=386 go build -o dnsleaktest.exe dnsleaktest.go
 
 ```
+
+## How to run from Docker
+
+It is possible to run the Python version using Docker with the following one-liner:
+
+```
+docker run python:alpine sh -c 'wget -q -O- https://raw.githubusercontent.com/macvk/dnsleaktest/master/dnsleaktest.py | python'
+```
