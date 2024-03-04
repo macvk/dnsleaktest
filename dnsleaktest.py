@@ -25,11 +25,14 @@ def ping(host):
     return retcode == 0
 
 
-leak_id = randint(1000000, 9999999)
-for x in range(0, 10):
-    ping('.'.join([str(x), str(leak_id), "bash.ws"]))
+response = urlopen("https://bash.ws/id")
+data = response.read().decode("utf-8")
 
-response = urlopen("https://bash.ws/dnsleak/test/"+str(leak_id)+"?json")
+leak_id = data
+for x in range(0, 10):
+    ping('.'.join([str(x), leak_id, "bash.ws"]))
+
+response = urlopen("https://bash.ws/dnsleak/test/"+leak_id+"?json")
 data = response.read().decode("utf-8")
 parsed_data = json.loads(data)
 

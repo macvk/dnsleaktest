@@ -3,7 +3,7 @@
 rem Any questions: tutumbul@gmail.com
 rem https://bash.ws/dnsleak
 
-for /F "tokens=*" %%g IN ('powershell -command "& { Get-Random -Minimum 1000000 -Maximum 9999999 }"') do (set /a leak_id=%%g)
+for /f "delims=" %%a in (' powershell -command "& { (Invoke-WebRequest 'https://bash.ws/id').Content }"') do set "leak_id=%%a"
 
 rem echo %leak_id%
 
