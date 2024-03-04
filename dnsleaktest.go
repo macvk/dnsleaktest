@@ -26,51 +26,62 @@ func _pError(err error) {
 	}
 }
 
-func _random(min, max int) int {
-	rand.Seed(time.Now().Unix())
-	return rand.Intn(max-min) + min
+func getContent(url string) ([]byte, error) {
+	resp, err := http.Get(url)
+	if err != nil {
+		return nil, fmt.Errorf("GET error: %v", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("Status error: %v", resp.StatusCode)
+	}
+
+	data, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("Read body: %v", err)
+	}
+
+	return data, nil
 }
 
-func fakePing() int {
-
+func fakePing() (string, error) {
 	var wg sync.WaitGroup
-	rSubDomainId1 := _random(1000000, 9999999)
+
+	data, err := getContent(fmt.Sprintf("https://%s/id", ApiDomain))
+	if err != nil {
+		return "", err
+	}
+
+	var testId string = string(data)
 
 	for i := 0; i <= 10; i++ {
-		initUrl := fmt.Sprintf("https://%d.%d.%s", i, rSubDomainId1, ApiDomain)
+		urlPing := fmt.Sprintf("https://%d.%s.%s", i, testId, ApiDomain)
 		wg.Add(1)
-		go func(initUrl string) {
+		go func(urlPing string) {
 			defer wg.Done()
-			http.Get(initUrl)
-		}(initUrl)
+			http.Get(urlPing)
+		}(urlPing)
 	}
 	wg.Wait()
 
-	return rSubDomainId1
+	return testId, nil
 }
 
-func getResult(id int) []Block {
+func getResult(testId string) ([]Block, error) {
 
-	getUrl := fmt.Sprintf("https://%s/dnsleak/test/%d?json", ApiDomain, id)
 	// send GET request
-	res, err := http.Get(getUrl)
-	_pError(err)
-	defer res.Body.Close()
+	data, err := getContent(fmt.Sprintf("https://%s/dnsleak/test/%s?json", ApiDomain, testId))
 
-	var data []Block
+	var xml []Block
 
-	if res.StatusCode == http.StatusOK {
+	err = json.Unmarshal(data, &xml)
 
-		bodyBytes, _ := ioutil.ReadAll(res.Body)
-		err = json.Unmarshal(bodyBytes, &data)
-
-		if err != nil {
-			fmt.Println(err)
-		}
-
+	if err != nil {
+		return nil, err
 	}
 
-	return data
+	return xml, nil
 }
 
 func printResult(result []Block, Type string) {
@@ -97,9 +108,15 @@ func printResult(result []Block, Type string) {
 
 func main() {
 	//create new request to server to get an id fo testing
-	testId := fakePing()
+	testId, err := fakePing()
+	if err != nil {
+		_pError(err)
+	}
 	//test DNS leak
-	result := getResult(testId)
+	result, err := getResult(testId)
+	if err != nil {
+		_pError(err)
+	}
 	//show the testing result
 
 	dns := 0

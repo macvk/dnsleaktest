@@ -62,11 +62,7 @@ else
     jq_exists=0
 fi
 
-if hash shuf 2>/dev/null; then
-    id=$(shuf -i 1000000-9999999 -n 1)
-else
-    id=$(jot -w %i -r 1 1000000 9999999)
-fi
+id=$(curl ${curl_interface} --silent "https://${api_domain}/id")
 
 for i in $(seq 1 10); do
     ping -c 1 ${ping_interface} "${i}.${id}.${api_domain}" > /dev/null 2>&1
