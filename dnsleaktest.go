@@ -4,10 +4,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
-	"math/rand"
 	"net/http"
 	"sync"
-	"time"
 )
 
 var ApiDomain = "bash.ws"
@@ -20,40 +18,39 @@ type Block struct {
 	Type        string `json:"type"`
 }
 
-func _pError(err error) {
-	if err != nil {
-		panic(err)
+func raiseError(err error) {
+	if err == nil {
+		return;
 	}
+
+	panic(err)
 }
 
-func getContent(url string) ([]byte, error) {
+func getContent(url string) ([]byte) {
 	resp, err := http.Get(url)
 	if err != nil {
-		return nil, fmt.Errorf("GET error: %v", err)
+		raiseError(fmt.Errorf("GET error: %v", err))
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("Status error: %v", resp.StatusCode)
+		raiseError(fmt.Errorf("Status error: %v", resp.StatusCode))
 	}
 
 	data, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		return nil, fmt.Errorf("Read body: %v", err)
+		raiseError(fmt.Errorf("Read body: %v", err))
 	}
 
-	return data, nil
+	return data
 }
 
-func fakePing() (string, error) {
+func getId() (string) {
+	return string(getContent(fmt.Sprintf("https://%s/id", ApiDomain)))
+}
+
+func fakePing(testId string) () {
 	var wg sync.WaitGroup
-
-	data, err := getContent(fmt.Sprintf("https://%s/id", ApiDomain))
-	if err != nil {
-		return "", err
-	}
-
-	var testId string = string(data)
 
 	for i := 0; i <= 10; i++ {
 		urlPing := fmt.Sprintf("https://%d.%s.%s", i, testId, ApiDomain)
@@ -64,24 +61,18 @@ func fakePing() (string, error) {
 		}(urlPing)
 	}
 	wg.Wait()
-
-	return testId, nil
 }
 
-func getResult(testId string) ([]Block, error) {
-
+func getResult(testId string) ([]Block) {
 	// send GET request
-	data, err := getContent(fmt.Sprintf("https://%s/dnsleak/test/%s?json", ApiDomain, testId))
+	data := getContent(fmt.Sprintf("https://%s/dnsleak/test/%s?json", ApiDomain, testId))
 
 	var xml []Block
 
-	err = json.Unmarshal(data, &xml)
+	err := json.Unmarshal(data, &xml)
+	raiseError(err)
 
-	if err != nil {
-		return nil, err
-	}
-
-	return xml, nil
+	return xml
 }
 
 func printResult(result []Block, Type string) {
@@ -107,18 +98,17 @@ func printResult(result []Block, Type string) {
 }
 
 func main() {
-	//create new request to server to get an id fo testing
-	testId, err := fakePing()
-	if err != nil {
-		_pError(err)
-	}
-	//test DNS leak
-	result, err := getResult(testId)
-	if err != nil {
-		_pError(err)
-	}
-	//show the testing result
 
+	// get an id fo testing
+	testId := getId()
+
+	// ping fake domains
+	fakePing(testId)
+
+	// parse test result
+	result := getResult(testId)
+
+	// show the testing result
 	dns := 0
 	for _, Block := range result {
 		switch Block.Type {
