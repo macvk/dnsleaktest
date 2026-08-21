@@ -9,7 +9,7 @@ rem echo %leak_id%
 
 for /L %%g IN (1,1,10) do ping %%g.%leak_id%.bash.ws > nul
 
-powershell -NoProfile -Command "& { (Invoke-WebRequest -UseBasicParsing 'https://bash.ws/dnsleak/test/%leak_id%?txt').Content | Set-Content -Encoding UTF8 '%leak_id%.txt' }"
+powershell -NoProfile -Command "& { Invoke-WebRequest -UseBasicParsing 'https://bash.ws/dnsleak/test/%leak_id%?txt' -OutFile '%leak_id%.txt' }"
 
 echo Your IP:
 for /f "tokens=1,2,3,4,5 delims=|" %%1 in (%leak_id%.txt) do (
