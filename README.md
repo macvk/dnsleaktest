@@ -101,8 +101,22 @@ GOOS=windows GOARCH=386 go build -o dnsleaktest.exe dnsleaktest.go
 
 ## How to run from Docker
 
-It is possible to run the Python version using Docker with the following one-liner:
+### Linux
+
+Use host networking so the test sees the host's network stack and DNS
+configuration. This is important when the host uses a local DNS resolver such as
+systemd-resolved or NextDNS.
 
 ```
-docker run python:alpine sh -c 'wget -q -O- https://raw.githubusercontent.com/macvk/dnsleaktest/master/dnsleaktest.py | python'
+docker run --rm --network host python:alpine sh -c 'wget -q -O- https://raw.githubusercontent.com/macvk/dnsleaktest/master/dnsleaktest.py | python'
+```
+
+### macOS and Windows
+
+Docker Desktop runs containers in a virtual machine, so host networking does not
+provide the same view of the host's DNS configuration as it does on Linux. The
+following command tests the DNS configuration visible inside the container:
+
+```
+docker run --rm python:alpine sh -c 'wget -q -O- https://raw.githubusercontent.com/macvk/dnsleaktest/master/dnsleaktest.py | python'
 ```
