@@ -6,6 +6,7 @@
 import os
 import subprocess
 import json
+from concurrent.futures import ThreadPoolExecutor
 from random import randint
 from platform import system as system_name
 from subprocess import call as system_call
@@ -18,8 +19,13 @@ except ImportError:
 
 def ping(host):
     fn = open(os.devnull, 'w')
-    param = '-n' if system_name().lower() == 'windows' else '-c'
-    command = ['ping', param, '1', host]
+    current_system = system_name().lower()
+    if current_system == 'windows':
+        command = ['ping', '-n', '1', '-w', '1000', host]
+    elif current_system == 'darwin':
+        command = ['ping', '-c', '1', '-W', '1000', host]
+    else:
+        command = ['ping', '-c', '1', '-W', '1', host]
     retcode = system_call(command, stdout=fn, stderr=subprocess.STDOUT)
     fn.close()
     return retcode == 0
@@ -29,8 +35,9 @@ response = urlopen("https://bash.ws/id")
 data = response.read().decode("utf-8")
 
 leak_id = data
-for x in range(0, 10):
-    ping('.'.join([str(x), leak_id, "bash.ws"]))
+hosts = ('.'.join([str(x), leak_id, "bash.ws"]) for x in range(1, 31))
+with ThreadPoolExecutor(max_workers=30) as executor:
+    list(executor.map(ping, hosts))
 
 response = urlopen("https://bash.ws/dnsleak/test/"+leak_id+"?json")
 data = response.read().decode("utf-8")

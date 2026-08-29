@@ -81,10 +81,12 @@ fi
 id=$(curl_request --silent "https://${api_domain}/id")
 
 i=1
-while [ "$i" -le 10 ]; do
-    ping_request -c 1 "${i}.${id}.${api_domain}" > /dev/null 2>&1
+while [ "$i" -le 30 ]; do
+    ping_request -c 1 -W 1 "${i}.${id}.${api_domain}" > /dev/null 2>&1 &
     i=$((i + 1))
 done
+
+wait
 
 is_blank() {
     case "$1" in
