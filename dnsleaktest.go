@@ -17,10 +17,13 @@ import (
 	"os/exec"
 	"path/filepath"
 	"runtime"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
 )
+
+const Version = "1.4.0"
 
 var ApiDomain = "bash.ws"
 var httpClient = &http.Client{Timeout: 30 * time.Second}
@@ -88,6 +91,16 @@ func safeURL(url string) string {
 		return url[:i] + "/dnsleak/test/[REDACTED]"
 	}
 	return url
+}
+
+func commandLine() string {
+	arguments := make([]string, len(os.Args))
+
+	for index, argument := range os.Args {
+		arguments[index] = strconv.Quote(argument)
+	}
+
+	return strings.Join(arguments, " ")
 }
 
 func clientForInterface(value string) (*http.Client, error) {
@@ -194,33 +207,40 @@ func printResult(result []Block, Type string) {
 		}
 
 		if Block.Asn != "" {
-			fmt.Printf("%s [%s, %s]\n", Block.Ip, Block.CountryName, Block.Asn)
+			printOutput("%s [%s, %s]\n", Block.Ip, Block.CountryName, Block.Asn)
 			continue
 		}
 
 		if Block.CountryName != "" {
-			fmt.Printf("%s [%s]\n", Block.Ip, Block.CountryName)
+			printOutput("%s [%s]\n", Block.Ip, Block.CountryName)
 			continue
 		}
 
 		if Block.Ip != "" {
-			fmt.Printf("%s\n", Block.Ip)
+			printOutput("%s\n", Block.Ip)
 		}
 	}
 }
 
+func printOutput(format string, values ...interface{}) {
+	output := fmt.Sprintf(format, values...)
+	fmt.Print(output)
+	logInfo("%s", strings.TrimSuffix(output, "\n"))
+}
+
 func logResult(result []Block) {
 	conclusion := ""
+	logTrace("Parsed JSON result:")
 
 	for _, block := range result {
 		switch block.Type {
 		case "ip":
-			logInfo("public_ip=%s; country=%s; asn=%s", block.Ip, block.CountryName, block.Asn)
+			logTrace("public_ip=%s; country=%s; asn=%s", block.Ip, block.CountryName, block.Asn)
 		case "dns":
-			logInfo("dns_server=%s; country=%s; asn=%s", block.Ip, block.CountryName, block.Asn)
+			logTrace("dns_server=%s; country=%s; asn=%s", block.Ip, block.CountryName, block.Asn)
 		case "conclusion":
 			conclusion = block.Ip
-			logInfo("conclusion=%s", conclusion)
+			logTrace("conclusion=%s", conclusion)
 		}
 	}
 
@@ -324,7 +344,11 @@ func main() {
 	var err error
 	httpClient, err = clientForInterface(networkInterface)
 	raiseError(err)
-	logInfo("dnsleaktest started; OS=%s; interface=%s; probes=%d; parallel=%d", runtime.GOOS, networkInterface, probes, parallel)
+	logInfo(
+		"%s version %s started; OS=%s; interface=%s; probes=%d; parallel=%d",
+		filepath.Base(os.Args[0]), Version, runtime.GOOS, networkInterface, probes, parallel,
+	)
+	logInfo("Command line: %s", commandLine())
 	testStarted := time.Now()
 
 	// get an id fo testing
@@ -363,7 +387,7 @@ func main() {
 			status = "leak_detected"
 		}
 
-		fmt.Printf("%s %.2fs %s\n", time.Now().Format(time.RFC3339), time.Since(testStarted).Seconds(), status)
+		printOutput("%s %.2fs %s\n", time.Now().Format(time.RFC3339), time.Since(testStarted).Seconds(), status)
 		logInfo("dnsleaktest finished; dns_servers=%d; exit=0", dns)
 
 		if watch == 0 {
@@ -392,21 +416,21 @@ func main() {
 		}
 	}
 
-	fmt.Print("Your IP:\n")
+	printOutput("Your IP:\n")
 	printResult(result, "ip")
 
 	if dns == 0 {
-		fmt.Print("No DNS servers found\n")
+		printOutput("No DNS servers found\n")
 	} else {
 		if dns == 1 {
-			fmt.Printf("You use %d DNS server:\n", dns)
+			printOutput("You use %d DNS server:\n", dns)
 		} else {
-			fmt.Printf("You use %d DNS servers:\n", dns)
+			printOutput("You use %d DNS servers:\n", dns)
 		}
 		printResult(result, "dns")
 	}
 
-	fmt.Print("Conclusion:\n")
+	printOutput("Conclusion:\n")
 	printResult(result, "conclusion")
 	logInfo("dnsleaktest finished; dns_servers=%d; exit=0", dns)
 
