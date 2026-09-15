@@ -5,7 +5,9 @@ rem DNS leak test client for bash.ws.
 rem Project: https://github.com/macvk/dnsleaktest
 rem SPDX-License-Identifier: MIT
 
+set "version=1.4.0"
 set "program_name=%~nx0"
+set "command_line=%program_name% %*"
 set "interface="
 set "verbose="
 set "log_file="
@@ -168,7 +170,8 @@ if defined verbose (
     if not "%DNSLEAK_WATCH_CHILD%" == "1" echo Diagnostic log: !log_file!
 )
 
-call :log_info "dnsleaktest started; OS=Windows; requested_interface=%interface%; probes=%probes%; parallel=%parallel%"
+call :log_info "%program_name% version %version% started; OS=Windows; requested_interface=%interface%; probes=%probes%; parallel=%parallel%"
+call :log_info "Command line: !command_line!"
 
 where curl.exe >nul 2>&1
 
@@ -236,15 +239,23 @@ if errorlevel 1 (
     exit /b 1
 )
 
+call :log_trace "Parsed text result:"
+
 if "%short_output%" == "1" goto short_result
 
-echo Your IP:
+call :print_line "Your IP:"
 
 for /f "usebackq tokens=1,2,3,4,5 delims=|" %%1 in ("%result_file%") do (
     if "%%5" == "ip" (
         if not "%%1" == "" (
-            call :print_address "%%1" "%%3" "%%4"
-            call :log_info "public_ip=%%1; country=%%3; asn=%%4"
+            set "address_ip=%%1"
+            set "address_country=%%3"
+            set "address_asn=%%4"
+            call :print_address
+
+            if /I "!verbose!" == "trace" (
+                >>"!log_file!" echo !date!T!time! [TRACE] public_ip=!address_ip!; country=!address_country!; asn=!address_asn!
+            )
         )
     )
 )
@@ -256,37 +267,47 @@ for /f "usebackq tokens=1,2,3,4,5 delims=|" %%1 in ("%result_file%") do (
 )
 
 if "!servers!" == "0" (
-    echo No DNS servers found
+    call :print_line "No DNS servers found"
 ) else (
     if "!servers!" == "1" (
-        echo You use 1 DNS server:
+        call :print_line "You use 1 DNS server:"
     ) else (
-        echo You use !servers! DNS servers:
+        call :print_line "You use !servers! DNS servers:"
     )
 
     for /f "usebackq tokens=1,2,3,4,5 delims=|" %%1 in ("%result_file%") do (
         if "%%5" == "dns" (
             if not "%%1" == "" (
-                call :print_address "%%1" "%%3" "%%4"
-                call :log_info "dns_server=%%1; country=%%3; asn=%%4"
+                set "address_ip=%%1"
+                set "address_country=%%3"
+                set "address_asn=%%4"
+                call :print_address
+
+                if /I "!verbose!" == "trace" (
+                    >>"!log_file!" echo !date!T!time! [TRACE] dns_server=!address_ip!; country=!address_country!; asn=!address_asn!
+                )
             )
         )
     )
 )
 
-echo Conclusion:
+call :print_line "Conclusion:"
 set "conclusion="
 
 for /f "usebackq tokens=1,2,3,4,5 delims=|" %%1 in ("%result_file%") do (
     if "%%5" == "conclusion" (
         if not "%%1" == "" (
             set "conclusion=%%1"
-            echo %%1
         )
     )
 )
 
-call :log_info "conclusion=!conclusion!"
+set "output_line=!conclusion!"
+call :print_line_value
+
+if /I "!verbose!" == "trace" (
+    >>"!log_file!" echo !date!T!time! [TRACE] conclusion=!conclusion!
+)
 
 echo(!conclusion! | findstr /I /C:"not leaking" /C:"no leak" >nul
 
@@ -314,11 +335,27 @@ set "conclusion="
 
 for /f "usebackq tokens=1,2,3,4,5 delims=|" %%1 in ("%result_file%") do (
     if "%%5" == "ip" (
-        if not "%%1" == "" call :log_info "public_ip=%%1; country=%%3; asn=%%4"
+        if not "%%1" == "" (
+            set "address_ip=%%1"
+            set "address_country=%%3"
+            set "address_asn=%%4"
+
+            if /I "!verbose!" == "trace" (
+                >>"!log_file!" echo !date!T!time! [TRACE] public_ip=!address_ip!; country=!address_country!; asn=!address_asn!
+            )
+        )
     )
     if "%%5" == "dns" (
         set /a servers+=1
-        if not "%%1" == "" call :log_info "dns_server=%%1; country=%%3; asn=%%4"
+        if not "%%1" == "" (
+            set "address_ip=%%1"
+            set "address_country=%%3"
+            set "address_asn=%%4"
+
+            if /I "!verbose!" == "trace" (
+                >>"!log_file!" echo !date!T!time! [TRACE] dns_server=!address_ip!; country=!address_country!; asn=!address_asn!
+            )
+        )
     )
     if "%%5" == "conclusion" set "conclusion=%%1"
 )
@@ -332,8 +369,12 @@ if not errorlevel 1 (
     if not errorlevel 1 (set "test_result=leak_detected") else (set "test_result=unknown")
 )
 
-echo %date%T%time% !test_result!
-call :log_info "conclusion=!conclusion!"
+call :print_line "%date%T%time% !test_result!"
+
+if /I "!verbose!" == "trace" (
+    >>"!log_file!" echo !date!T!time! [TRACE] conclusion=!conclusion!
+)
+
 call :log_info "result=!test_result!"
 call :log_info "dnsleaktest finished; dns_servers=!servers!; exit=0"
 del /q "%result_file%" >nul 2>&1
@@ -353,18 +394,39 @@ call "%~f0" !watch_args!
 goto watch_loop
 
 :print_address
-if not "%~3" == "" (
-    echo %~1 [%~2, %~3]
-) else if not "%~2" == "" (
-    echo %~1 [%~2]
+if defined address_asn (
+    set "output_line=!address_ip! [!address_country!, !address_asn!]"
+) else if defined address_country (
+    set "output_line=!address_ip! [!address_country!]"
 ) else (
-    echo %~1
+    set "output_line=!address_ip!"
 )
+
+call :print_line_value
+exit /b 0
+
+:print_line
+echo(%~1
+call :log_info "%~1"
+exit /b 0
+
+:print_line_value
+echo(!output_line!
+
+if defined verbose (
+    >>"!log_file!" echo !date!T!time! [INFO] !output_line!
+)
+
 exit /b 0
 
 :log_info
 if not defined verbose exit /b 0
 >>"!log_file!" echo %date%T%time% [INFO] %~1
+exit /b 0
+
+:log_trace
+if /I not "!verbose!" == "trace" exit /b 0
+>>"!log_file!" echo %date%T%time% [TRACE] %~1
 exit /b 0
 
 :argument_error
