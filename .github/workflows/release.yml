@@ -1,0 +1,75 @@
+name: Build release executables
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Existing release tag to build
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: Build ${{ matrix.name }}
+    runs-on: ubuntu-latest
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: Linux amd64
+            goos: linux
+            goarch: amd64
+            output: dnsleaktest-linux-amd64
+          - name: Linux arm64
+            goos: linux
+            goarch: arm64
+            output: dnsleaktest-linux-arm64
+          - name: Linux ARMv7
+            goos: linux
+            goarch: arm
+            goarm: '7'
+            output: dnsleaktest-linux-armv7
+          - name: Windows amd64
+            goos: windows
+            goarch: amd64
+            output: dnsleaktest-windows-amd64.exe
+          - name: Windows arm64
+            goos: windows
+            goarch: arm64
+            output: dnsleaktest-windows-arm64.exe
+          - name: Windows 386
+            goos: windows
+            goarch: '386'
+            output: dnsleaktest-windows-386.exe
+
+    steps:
+      - name: Check out release tag
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.tag || github.ref }}
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: stable
+
+      - name: Build executable
+        env:
+          GOOS: ${{ matrix.goos }}
+          GOARCH: ${{ matrix.goarch }}
+          GOARM: ${{ matrix.goarm || '' }}
+          CGO_ENABLED: '0'
+        run: go build -trimpath -ldflags='-s -w' -o '${{ matrix.output }}' dnsleaktest.go
+
+      - name: Upload executable to release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ inputs.tag || github.ref_name }}
+        run: gh release upload "$RELEASE_TAG" '${{ matrix.output }}' --clobber
