@@ -4,11 +4,14 @@
 # Project: https://github.com/macvk/dnsleaktest
 # SPDX-License-Identifier: MIT
 
+VERSION = '1.4.0'
+
 import os
 import subprocess
 import json
 import argparse
 import datetime
+import shlex
 import sys
 import threading
 import time
@@ -180,6 +183,11 @@ if args.log_file and not args.verbose:
 diagnostic_log = DiagnosticLog(args.verbose, args.log_file or default_log_file())
 
 
+def print_output(message):
+    print(message)
+    diagnostic_log.info(message)
+
+
 def log_uncaught_exception(kind, value, traceback):
     diagnostic_log.info("ERROR: {}".format(value))
     diagnostic_log.info("dnsleaktest finished; exit=1")
@@ -187,8 +195,16 @@ def log_uncaught_exception(kind, value, traceback):
 
 
 sys.excepthook = log_uncaught_exception
-diagnostic_log.info("dnsleaktest started; OS={}; interface={}; probes={}; parallel={}".format(
-    system_name(), args.interface or 'default', args.probes, args.parallel))
+
+if system_name().lower() == 'windows':
+    command_line = subprocess.list2cmdline(sys.argv)
+else:
+    command_line = ' '.join(shlex.quote(argument) for argument in sys.argv)
+
+diagnostic_log.info("{} version {} started; OS={}; interface={}; probes={}; parallel={}".format(
+    os.path.basename(sys.argv[0]), VERSION, system_name(),
+    args.interface or 'default', args.probes, args.parallel))
+diagnostic_log.info("Command line: {}".format(command_line))
 test_started = time.monotonic()
 
 data = get_content("https://bash.ws/id", args.interface, diagnostic_log)
@@ -203,30 +219,31 @@ with ThreadPoolExecutor(max_workers=min(args.probes, args.parallel)) as executor
 data = get_content("https://bash.ws/dnsleak/test/"+leak_id+"?json", args.interface, diagnostic_log)
 parsed_data = json.loads(data)
 test_result = 'unknown'
+diagnostic_log.trace("Parsed JSON result:")
 
 for entry in parsed_data:
     if entry['type'] == 'ip':
-        diagnostic_log.info("public_ip={}; country={}; asn={}".format(
+        diagnostic_log.trace("public_ip={}; country={}; asn={}".format(
             entry['ip'], entry['country_name'], entry['asn']))
     elif entry['type'] == 'dns':
-        diagnostic_log.info("dns_server={}; country={}; asn={}".format(
+        diagnostic_log.trace("dns_server={}; country={}; asn={}".format(
             entry['ip'], entry['country_name'], entry['asn']))
     elif entry['type'] == 'conclusion':
         conclusion = entry['ip']
-        diagnostic_log.info("conclusion={}".format(conclusion))
+        diagnostic_log.trace("conclusion={}".format(conclusion))
         conclusion_lower = conclusion.lower()
         if 'not leaking' in conclusion_lower or 'no leak' in conclusion_lower:
             test_result = 'no_leak'
         elif 'may be leaking' in conclusion_lower or 'leak detected' in conclusion_lower:
             test_result = 'leak_detected'
 
-        diagnostic_log.info("result={}".format(test_result))
+diagnostic_log.info("result={}".format(test_result))
 
 if args.short:
     servers = sum(1 for entry in parsed_data if entry['type'] == 'dns')
     elapsed = time.monotonic() - test_started
     timestamp = datetime.datetime.now().astimezone().isoformat(timespec='seconds')
-    print("{} {:.2f}s {}".format(timestamp, elapsed, test_result))
+    print_output("{} {:.2f}s {}".format(timestamp, elapsed, test_result))
     diagnostic_log.info("dnsleaktest finished; dns_servers={}; exit=0".format(servers))
 
     if not args.watch:
@@ -251,17 +268,17 @@ if args.short:
     os.environ['DNSLEAK_WATCH_CHILD'] = '1'
     os.execv(sys.executable, arguments)
 
-print("Your IP:")
+print_output("Your IP:")
 for dns_server in parsed_data:
     if dns_server['type'] == "ip":
         if dns_server['country_name']:
             if dns_server['asn']:
-                print(dns_server['ip']+" ["+dns_server['country_name']+", " +
-                      dns_server['asn']+"]")
+                print_output(dns_server['ip']+" ["+dns_server['country_name']+", " +
+                             dns_server['asn']+"]")
             else:
-                print(dns_server['ip']+" ["+dns_server['country_name']+"]")
+                print_output(dns_server['ip']+" ["+dns_server['country_name']+"]")
         else:
-            print(dns_server['ip'])
+            print_output(dns_server['ip'])
 
 servers = 0
 for dns_server in parsed_data:
@@ -269,24 +286,28 @@ for dns_server in parsed_data:
         servers = servers + 1
 
 if servers == 0:
-    print("No DNS servers found")
+    print_output("No DNS servers found")
 else:
-    print("You use "+str(servers)+" DNS servers:")
+    if servers == 1:
+        print_output("You use 1 DNS server:")
+    else:
+        print_output("You use "+str(servers)+" DNS servers:")
+
     for dns_server in parsed_data:
         if dns_server['type'] == "dns":
             if dns_server['country_name']:
                 if dns_server['asn']:
-                    print(dns_server['ip']+" ["+dns_server['country_name'] +
-                          ", " + dns_server['asn']+"]")
+                    print_output(dns_server['ip']+" ["+dns_server['country_name'] +
+                                 ", " + dns_server['asn']+"]")
                 else:
-                    print(dns_server['ip']+" ["+dns_server['country_name']+"]")
+                    print_output(dns_server['ip']+" ["+dns_server['country_name']+"]")
             else:
-                print(dns_server['ip'])
+                print_output(dns_server['ip'])
 
-print("Conclusion:")
+print_output("Conclusion:")
 for dns_server in parsed_data:
     if dns_server['type'] == "conclusion":
         if dns_server['ip']:
-            print(dns_server['ip'])
+            print_output(dns_server['ip'])
 
 diagnostic_log.info("dnsleaktest finished; dns_servers={}; exit=0".format(servers))
