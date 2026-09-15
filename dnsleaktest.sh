@@ -3,6 +3,19 @@
 # Project: https://github.com/macvk/dnsleaktest
 # SPDX-License-Identifier: MIT
 
+version='1.4.0'
+
+quote_argument() {
+    printf "'%s'" "$(printf '%s' "$1" | sed "s/'/'\\\\''/g")"
+}
+
+program_name=${0##*/}
+command_line=$(quote_argument "$program_name")
+
+for argument do
+    command_line="${command_line} $(quote_argument "$argument")"
+done
+
 RED='\033[0;31m'
 BOLD='\033[1m'
 NC='\033[0m'
@@ -16,7 +29,6 @@ probes=30
 parallel=30
 short_output=0
 watch_interval=''
-program_name=${0##*/}
 
 usage() {
     cat <<EOF
@@ -170,11 +182,23 @@ log_trace() {
         printf '%s [TRACE] %s\n' "$(date '+%Y-%m-%dT%H:%M:%S%z')" "$*" >> "$log_file"
 }
 
-log_info "dnsleaktest started; OS=$(uname -s 2>/dev/null); interface=${interface:-default}; probes=$probes; parallel=$parallel"
+log_info "${program_name} version ${version} started; OS=$(uname -s 2>/dev/null); interface=${interface:-default}; probes=$probes; parallel=$parallel"
+log_info "Command line: ${command_line}"
 
 echo_bold() {
     printf '%b\n' "${BOLD}${1}${NC}"
     log_info "$1"
+}
+
+print_line() {
+    printf '%s\n' "$1"
+    log_info "$1"
+}
+
+print_server_lines() {
+    print_servers "$1" | while IFS= read -r output_line; do
+        print_line "$output_line"
+    done
 }
 
 if [ -z "$interface" ]; then
@@ -337,7 +361,7 @@ print_servers() {
         printf '%s\n' "$result_json" | \
             jq  --monochrome-output \
             --raw-output \
-            ".[] | select(.type == \"${1}\") | \"\(.ip)\(if .country_name != \"\" and  .country_name != false then \" [\(.country_name)\(if .asn != \"\" and .asn != false then \" \(.asn)\" else \"\" end)]\" else \"\" end)\""
+            ".[] | select(.type == \"${1}\") | \"\(.ip)\(if .country_name != \"\" and  .country_name != false then \" [\(.country_name)\(if .asn != \"\" and .asn != false then \", \(.asn)\" else \"\" end)]\" else \"\" end)\""
 
     else
 
@@ -403,25 +427,32 @@ case "$conclusion" in
         ;;
 esac
 
-if [ -n "$verbose" ]; then
+if [ "$verbose" = trace ]; then
+    if [ "$jq_exists" -ne 0 ]; then
+        log_trace "Parsed JSON result:"
+    else
+        log_trace "Parsed text result:"
+    fi
+
     print_servers "ip" | while IFS= read -r detected_ip; do
-        log_info "public_ip=$detected_ip"
+        log_trace "public_ip=$detected_ip"
     done
 
     print_servers "dns" | while IFS= read -r detected_dns; do
-        log_info "dns_server=$detected_dns"
+        log_trace "dns_server=$detected_dns"
     done
 
-    log_info "conclusion=$conclusion"
-    log_info "result=$test_result"
+    log_trace "conclusion=$conclusion"
 fi
+
+log_info "result=$test_result"
 
 if [ "$short_output" -eq 1 ]; then
     test_finished=$(date +%s)
-    printf '%s %ss %s\n' "$(date '+%Y-%m-%dT%H:%M:%S%z')" "$((test_finished - test_started))" "$test_result"
+    print_line "$(date '+%Y-%m-%dT%H:%M:%S%z') $((test_finished - test_started))s $test_result"
 else
     echo_bold "Your IP:"
-    print_servers "ip"
+    print_server_lines "ip"
 
     printf '\n'
     if [ "$dns_count" -eq 0 ]; then
@@ -432,12 +463,12 @@ else
         else
             echo_bold "You use ${dns_count} DNS servers:"
         fi
-        print_servers "dns"
+        print_server_lines "dns"
     fi
 
     printf '\n'
     echo_bold "Conclusion:"
-    print_servers "conclusion"
+    print_server_lines "conclusion"
 fi
 
 log_info "dnsleaktest finished; dns_servers=$dns_count; exit=0"
