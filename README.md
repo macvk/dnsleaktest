@@ -1,39 +1,46 @@
-# Dns Leak Test
-The test shows DNS leaks and your external IP. If you use the same ASN for DNS and connection - you have no leak, otherwise here might be a problem.
+# DNS Leak Test
 
-## Linux & macOS 
+This tool reports your external IP address and the DNS servers used by your
+connection. If their network providers differ unexpectedly, your DNS traffic
+may be leaking outside the intended connection or VPN.
 
-### How to install & use Bash Version
+## Linux and macOS
+
+### How to install and use the shell version
 
 Please, before use make sure you have `curl` and `ping` installed.
 
-1. Download dnsleaktest.sh
-```
-curl https://raw.githubusercontent.com/macvk/dnsleaktest/master/dnsleaktest.sh -o dnsleaktest.sh
+1. Download `dnsleaktest.sh` from v1.4:
+
+```sh
+curl -fLO https://raw.githubusercontent.com/macvk/dnsleaktest/v1.4/dnsleaktest.sh
 ```
 
-```
+```sh
 chmod +x dnsleaktest.sh
 ```
 
-2. Run dnsleaktest.sh
-```
+2. Run it:
+
+```sh
 ./dnsleaktest.sh
 ```
 
-### How to install & use Python Version
+### How to install and use the Python version
 
-1. Download dnsleaktest.py
-```
-curl https://raw.githubusercontent.com/macvk/dnsleaktest/master/dnsleaktest.py -o dnsleaktest.py
+1. Download `dnsleaktest.py` from [v1.4](https://github.com/macvk/dnsleaktest/releases/tag/v1.4):
+
+```sh
+curl -fLO https://raw.githubusercontent.com/macvk/dnsleaktest/v1.4/dnsleaktest.py
 ```
 
-```
+```sh
 chmod +x dnsleaktest.py
 ```
 
-2. Run dnsleaktest.py
-```
+2. Run it:
+
+```sh
 ./dnsleaktest.py
 ```
 
@@ -41,62 +48,65 @@ chmod +x dnsleaktest.py
 
 ## Windows
 
-### How to install & use batch file
+### How to install and use the batch file
 
 1. Download dnsleaktest.bat
 
-```
-powershell -command "& { (New-Object Net.WebClient).DownloadFile('https://raw.githubusercontent.com/macvk/dnsleaktest/master/dnsleaktest.bat', 'dnsleaktest.bat') }"
+```powershell
+Invoke-WebRequest -UseBasicParsing https://raw.githubusercontent.com/macvk/dnsleaktest/v1.4/dnsleaktest.bat -OutFile dnsleaktest.bat
 ```
 
-2. Run dnsleaktest.bat
-```
+2. Run `dnsleaktest.bat`:
+
+```bat
 dnsleaktest.bat
 ```
 
 -----------------------------------------------------
 
-## How to build & use Golang Version                                                                                  
+## Prebuilt Go executables
 
-You can use prebuilt executable binary for Linux, MacOs or Windows [created by travis-ci.org](https://github.com/macvk/dnsleaktest/releases/):
+Version 1.4 executables are built by GitHub Actions and published on the
+[v1.4 release page](https://github.com/macvk/dnsleaktest/releases/tag/v1.4).
 
-### Linux & macOS
+### Linux
 
-1. Download [dnsleaktest v1.3](https://github.com/macvk/dnsleaktest/releases/download/v1.3/dnsleaktest)
+- [Linux amd64](https://github.com/macvk/dnsleaktest/releases/download/v1.4/dnsleaktest-linux-amd64)
+- [Linux arm64](https://github.com/macvk/dnsleaktest/releases/download/v1.4/dnsleaktest-linux-arm64)
+- [Linux ARMv7](https://github.com/macvk/dnsleaktest/releases/download/v1.4/dnsleaktest-linux-armv7)
 
+After downloading the correct executable for your system:
+
+```sh
+chmod +x dnsleaktest-linux-amd64
+./dnsleaktest-linux-amd64
 ```
-chmod +x dnsleaktest
-```
 
-2. Run dnsleaktest
-```
-./dnsleaktest
-```
+### macOS
+
+- [macOS Intel](https://github.com/macvk/dnsleaktest/releases/download/v1.4/dnsleaktest-darwin-amd64)
+- [macOS Apple Silicon](https://github.com/macvk/dnsleaktest/releases/download/v1.4/dnsleaktest-darwin-arm64)
+
+The macOS executables are unsigned. macOS may ask you to confirm that you want
+to run a downloaded executable.
 
 ### Windows
 
-1. Download [dnsleaktest.exe v1.3](https://github.com/macvk/dnsleaktest/releases/download/v1.3/dnsleaktest.exe)
+- [Windows amd64](https://github.com/macvk/dnsleaktest/releases/download/v1.4/dnsleaktest-windows-amd64.exe)
+- [Windows arm64](https://github.com/macvk/dnsleaktest/releases/download/v1.4/dnsleaktest-windows-arm64.exe)
+- [Windows 32-bit](https://github.com/macvk/dnsleaktest/releases/download/v1.4/dnsleaktest-windows-386.exe)
 
-2. Run dnsleaktest.exe, 
-open cmd then navigate to the exe file
-```
-dnsleaktest.exe
-```
+Open Command Prompt, navigate to the download directory, and run the downloaded
+executable.
 
+### Build from source
 
+Install Go, then select the target operating system and architecture. Examples:
 
-### Or build binaries in your machine 
-
-1. Linux & macOS
-```
-GOOS=linux GOARCH=386 go build -o dnsleaktest dnsleaktest.go
-
-```
-2. Windows
-
-```
-GOOS=windows GOARCH=386 go build -o dnsleaktest.exe dnsleaktest.go
-
+```sh
+GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -o dnsleaktest-linux-amd64 dnsleaktest.go
+GOOS=darwin GOARCH=arm64 CGO_ENABLED=0 go build -o dnsleaktest-darwin-arm64 dnsleaktest.go
+GOOS=windows GOARCH=amd64 CGO_ENABLED=0 go build -o dnsleaktest-windows-amd64.exe dnsleaktest.go
 ```
 
 ## How to run from Docker
@@ -108,7 +118,7 @@ configuration. This is important when the host uses a local DNS resolver such as
 systemd-resolved or NextDNS.
 
 ```
-docker run --rm --network host python:alpine sh -c 'wget -q -O- https://raw.githubusercontent.com/macvk/dnsleaktest/master/dnsleaktest.py | python'
+docker run --rm --network host python:alpine sh -c 'wget -q -O- https://raw.githubusercontent.com/macvk/dnsleaktest/v1.4/dnsleaktest.py | python'
 ```
 
 ### macOS and Windows
@@ -118,5 +128,5 @@ provide the same view of the host's DNS configuration as it does on Linux. The
 following command tests the DNS configuration visible inside the container:
 
 ```
-docker run --rm python:alpine sh -c 'wget -q -O- https://raw.githubusercontent.com/macvk/dnsleaktest/master/dnsleaktest.py | python'
+docker run --rm python:alpine sh -c 'wget -q -O- https://raw.githubusercontent.com/macvk/dnsleaktest/v1.4/dnsleaktest.py | python'
 ```
