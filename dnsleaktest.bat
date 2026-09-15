@@ -61,11 +61,6 @@ goto parse_arguments
 set "short_output=1"
 shift
 goto parse_arguments
-    
-:enable_short
-set "short_output=1"
-shift
-goto parse_arguments
 
 :read_watch
 if "%~2" == "" (
@@ -74,10 +69,10 @@ if "%~2" == "" (
 )
 set "watch=%~2"
 set "short_output=1"
-shift       
-shift       
+shift
+shift
 goto parse_arguments
-    
+
 :read_parallel
 if "%~2" == "" (
     call :argument_error "Option %~1 requires a number."
@@ -87,7 +82,7 @@ set "parallel=%~2"
 shift
 shift
 goto parse_arguments
-            
+
 :read_verbose
 if "%~2" == "" (
     call :argument_error "Option %~1 requires info or trace."
@@ -97,17 +92,17 @@ set "verbose=%~2"
 shift
 shift
 goto parse_arguments
-    
+
 :read_log_file
 if "%~2" == "" (
     call :argument_error "Option --log-file requires a path."
     exit /b 2
-)   
+)
 set "log_file=%~2"
 shift
-shift   
+shift
 goto parse_arguments
-    
+
 :arguments_parsed
 powershell -NoProfile -Command "if ($env:probes -notmatch '^[1-9][0-9]*$' -or [int]$env:probes -gt 100) { exit 1 }"
 
@@ -118,7 +113,7 @@ if errorlevel 1 (
 
 if not "%watch%" == "0" (
     powershell -NoProfile -Command "if ($env:watch -notmatch '^[1-9][0-9]*$' -or [int]$env:watch -lt 10) { exit 1 }"
-    
+
     if errorlevel 1 (
         call :argument_error "Invalid watch interval '%watch%'; expected at least 10 seconds."
         exit /b 2
@@ -243,7 +238,6 @@ if errorlevel 1 (
 
 if "%short_output%" == "1" goto short_result
 
-
 echo Your IP:
 
 for /f "usebackq tokens=1,2,3,4,5 delims=|" %%1 in ("%result_file%") do (
@@ -319,7 +313,13 @@ set /a servers=0
 set "conclusion="
 
 for /f "usebackq tokens=1,2,3,4,5 delims=|" %%1 in ("%result_file%") do (
-    if "%%5" == "dns" set /a servers+=1
+    if "%%5" == "ip" (
+        if not "%%1" == "" call :log_info "public_ip=%%1; country=%%3; asn=%%4"
+    )
+    if "%%5" == "dns" (
+        set /a servers+=1
+        if not "%%1" == "" call :log_info "dns_server=%%1; country=%%3; asn=%%4"
+    )
     if "%%5" == "conclusion" set "conclusion=%%1"
 )
 
@@ -375,6 +375,7 @@ exit /b 0
 :fail
 echo %~1 1>&2
 call :log_info "ERROR: %~1"
+call :log_info "dnsleaktest finished; exit=1"
 del /q "%result_file%" >nul 2>&1
 exit /b 1
 
