@@ -36,6 +36,14 @@ jobs:
             goarch: arm
             goarm: '7'
             output: dnsleaktest-linux-armv7
+          - name: macOS amd64
+            goos: darwin
+            goarch: amd64
+            output: dnsleaktest-darwin-amd64
+          - name: macOS arm64
+            goos: darwin
+            goarch: arm64
+            output: dnsleaktest-darwin-arm64
           - name: Windows amd64
             goos: windows
             goarch: amd64
