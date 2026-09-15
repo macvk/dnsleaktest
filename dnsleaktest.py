@@ -77,8 +77,16 @@ def watch_interval(value):
 
 def default_log_file():
     home = os.path.expanduser('~')
-    if system_name().lower() == 'darwin':
+    current_system = system_name().lower()
+
+    if current_system == 'darwin':
         return os.path.join(home, 'Library', 'Logs', 'dnsleaktest', 'dnsleaktest.log')
+
+    if current_system == 'windows':
+        local_app_data = os.environ.get(
+            'LOCALAPPDATA', os.path.join(home, 'AppData', 'Local'))
+        return os.path.join(local_app_data, 'dnsleaktest', 'dnsleaktest.log')
+
     return os.path.join(os.environ.get('XDG_STATE_HOME', os.path.join(home, '.local', 'state')),
                         'dnsleaktest', 'dnsleaktest.log')
 
@@ -122,9 +130,11 @@ def ping(host, interface, diagnostic_log, probe, total_probes):
     else:
         command = ['ping', '-c', '1', '-W', '1', host]
     if interface:
-        if current_system == 'darwin':
+        if current_system == 'windows':
+            command[1:1] = ['-S', interface]
+        elif current_system == 'darwin':
             command[1:1] = ['-S' if (':' in interface or interface.replace('.', '').isdigit()) else '-b', interface]
-        elif current_system != 'windows':
+        else:
             command[1:1] = ['-I', interface]
     diagnostic_log.info("Starting DNS probe {} of {}".format(
         probe, total_probes))
@@ -172,6 +182,7 @@ diagnostic_log = DiagnosticLog(args.verbose, args.log_file or default_log_file()
 
 def log_uncaught_exception(kind, value, traceback):
     diagnostic_log.info("ERROR: {}".format(value))
+    diagnostic_log.info("dnsleaktest finished; exit=1")
     sys.__excepthook__(kind, value, traceback)
 
 
@@ -224,6 +235,7 @@ if args.short:
     try:
         time.sleep(args.watch)
     except KeyboardInterrupt:
+        diagnostic_log.info("dnsleaktest finished; exit=130")
         raise SystemExit(130)
 
     arguments = [sys.executable, sys.argv[0], '-p', str(args.probes),
