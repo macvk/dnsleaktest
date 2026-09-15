@@ -37,22 +37,37 @@ type Block struct {
 
 func raiseError(err error) {
 	if err == nil {
-		return;
+		return
 	}
 
 	logInfo("ERROR: %v", err)
+	logInfo("dnsleaktest finished; exit=1")
 	panic(err)
 }
 
 func defaultLogFile() string {
 	home, _ := os.UserHomeDir()
+
 	if runtime.GOOS == "darwin" {
 		return filepath.Join(home, "Library", "Logs", "dnsleaktest", "dnsleaktest.log")
 	}
+
+	if runtime.GOOS == "windows" {
+		localAppData := os.Getenv("LOCALAPPDATA")
+
+		if localAppData == "" {
+			localAppData = filepath.Join(home, "AppData", "Local")
+		}
+
+		return filepath.Join(localAppData, "dnsleaktest", "dnsleaktest.log")
+	}
+
 	state := os.Getenv("XDG_STATE_HOME")
+
 	if state == "" {
 		state = filepath.Join(home, ".local", "state")
 	}
+
 	return filepath.Join(state, "dnsleaktest", "dnsleaktest.log")
 }
 
