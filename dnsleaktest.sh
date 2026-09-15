@@ -191,6 +191,7 @@ increment_error_code() {
 echo_error() {
     printf '%b\n' "${RED}${1}${NC}" >&2
     log_info "ERROR: $1"
+    log_info "dnsleaktest finished; exit=$error_code"
 }
 
 require_command() {
