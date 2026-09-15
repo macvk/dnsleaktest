@@ -270,8 +270,18 @@ else
     jq_exists=0
 fi
 
-id=$(curl_request --silent "https://${api_domain}/id")
+if ! id=$(curl_request --silent "https://${api_domain}/id"); then
+    echo_error "Unable to obtain a test ID from ${api_domain}."
+    exit "$error_code"
+fi
+
+if [ -z "$id" ]; then
+    echo_error "Received an empty test ID from ${api_domain}."
+    exit "$error_code"
+fi
+
 log_info "Test ID received; bytes=${#id}"
+increment_error_code
 
 i=1
 active_probes=0
@@ -363,10 +373,18 @@ print_servers() {
 
 if [ "$jq_exists" -ne 0 ]; then
     log_info "Requesting JSON results"
-    result_json=$(curl_request --silent "https://${api_domain}/dnsleak/test/${id}?json")
+
+    if ! result_json=$(curl_request --silent "https://${api_domain}/dnsleak/test/${id}?json"); then
+        echo_error "Unable to retrieve DNS leak test results."
+        exit "$error_code"
+    fi
 else
     log_info "Requesting text results"
-    result_txt=$(curl_request --silent "https://${api_domain}/dnsleak/test/${id}?txt")
+
+    if ! result_txt=$(curl_request --silent "https://${api_domain}/dnsleak/test/${id}?txt"); then
+        echo_error "Unable to retrieve DNS leak test results."
+        exit "$error_code"
+    fi
 fi
 
 dns_count=$(print_servers "dns" | wc -l | tr -d '[:space:]')
