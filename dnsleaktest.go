@@ -312,7 +312,7 @@ func main() {
 		fmt.Fprintln(flags.Output(), "  -p, --probes NUMBER      Number of DNS probes to send (default: 30)")
 		fmt.Fprintln(flags.Output(), "  -j, --parallel NUMBER    Maximum simultaneous probes (default: 30)")
 		fmt.Fprintln(flags.Output(), "  -s, --short              Print a one-line result")
-		fmt.Fprintln(flags.Output(), "  -w, --watch [SECONDS]    Repeat in short mode (default: 0; otherwise minimum: 10 seconds)")
+		fmt.Fprintln(flags.Output(), "  -w, --watch [SECONDS]    Repeat in short mode (default: 0 seconds)")
 		fmt.Fprintln(flags.Output(), "  -v, --verbose LEVEL      Write diagnostics: info or trace")
 		fmt.Fprintln(flags.Output(), "      --log-file FILE      Set the log path (implies --verbose info)")
 		fmt.Fprintln(flags.Output(), "  -h, --help               Show this help")
@@ -343,8 +343,8 @@ func main() {
 		fmt.Fprintln(os.Stderr, "Invalid parallel count; expected an integer from 1 to 100.")
 		os.Exit(2)
 	}
-	if watch != 0 && watch < 10 {
-		fmt.Fprintln(os.Stderr, "Invalid watch interval; expected 0 or at least 10 seconds.")
+	if watch < 0 {
+		fmt.Fprintln(os.Stderr, "Invalid watch interval; expected a non-negative integer.")
 		os.Exit(2)
 	}
 	if watchEnabled {

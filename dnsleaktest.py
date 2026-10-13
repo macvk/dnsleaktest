@@ -31,7 +31,7 @@ def parse_args():
     parser.add_argument('-p', '--probes', metavar='NUMBER', type=probe_count, default=30, help='number of DNS probes to send (default: 30)')
     parser.add_argument('-j', '--parallel', metavar='NUMBER', type=parallel_count, default=30, help='maximum simultaneous probes (default: 30)')
     parser.add_argument('-s', '--short', action='store_true', help='print a one-line result')
-    parser.add_argument('-w', '--watch', metavar='SECONDS', nargs='?', const=0, type=watch_interval, help='repeat in short mode (default: 0; otherwise minimum: 10 seconds)')
+    parser.add_argument('-w', '--watch', metavar='SECONDS', nargs='?', const=0, type=watch_interval, help='repeat in short mode (default: 0 seconds)')
     parser.add_argument('-v', '--verbose', choices=('info', 'trace'), help='write diagnostics: info or trace')
     parser.add_argument('--log-file', metavar='FILE', help='set the log path (implies --verbose info)')
     return parser.parse_args()
@@ -65,10 +65,10 @@ def watch_interval(value):
     try:
         seconds = int(value)
     except ValueError:
-        raise argparse.ArgumentTypeError('must be 0 or an integer of at least 10')
+        raise argparse.ArgumentTypeError('must be a non-negative integer')
 
-    if seconds != 0 and seconds < 10:
-        raise argparse.ArgumentTypeError('must be 0 or an integer of at least 10')
+    if seconds < 0:
+        raise argparse.ArgumentTypeError('must be a non-negative integer')
 
     return seconds
 

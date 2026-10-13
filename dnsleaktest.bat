@@ -119,11 +119,11 @@ if errorlevel 1 (
     exit /b 2
 )
 
-if not "%watch%" == "0" (
-    powershell -NoProfile -Command "if ($env:watch -notmatch '^[1-9][0-9]*$' -or [int]$env:watch -lt 10) { exit 1 }"
+if "%watch_enabled%" == "1" (
+    powershell -NoProfile -Command "if ($env:watch -notmatch '^[0-9]+$') { exit 1 }"
 
     if errorlevel 1 (
-        call :argument_error "Invalid watch interval '%watch%'; expected 0 or at least 10 seconds."
+        call :argument_error "Invalid watch interval '%watch%'; expected a non-negative integer."
         exit /b 2
     )
 )
@@ -466,7 +466,7 @@ echo   -i, --interface IP        Use a specific source IP address
 echo   -p, --probes NUMBER      Number of DNS probes to send ^(default: 30^)
 echo   -j, --parallel NUMBER    Maximum simultaneous probes ^(default: 30^)
 echo   -s, --short              Print a one-line result
-echo   -w, --watch [SECONDS]    Repeat in short mode ^(default: 0; otherwise minimum: 10 seconds^)
+echo   -w, --watch [SECONDS]    Repeat in short mode ^(default: 0 seconds^)
 echo   -v, --verbose LEVEL      Write diagnostics: info or trace
 echo       --log-file FILE      Set the log path ^(implies --verbose info^)
 echo   -h, --help               Show this help

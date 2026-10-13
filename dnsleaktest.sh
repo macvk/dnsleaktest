@@ -40,7 +40,7 @@ Options:
   -p, --probes NUMBER      Number of DNS probes to send (default: 30)
   -j, --parallel NUMBER    Maximum simultaneous probes (default: 30)
   -s, --short              Print a one-line result
-  -w, --watch [SECONDS]    Repeat in short mode (default: 0; otherwise minimum: 10 seconds)
+  -w, --watch [SECONDS]    Repeat in short mode (default: 0 seconds)
   -v, --verbose LEVEL      Write diagnostics: info or trace
       --log-file FILE      Set the log path (implies --verbose info)
   -h, --help               Show this help
@@ -144,13 +144,9 @@ fi
 if [ -n "$watch_interval" ]; then
     case "$watch_interval" in
         *[!0-9]*)
-            argument_error "Invalid watch interval '$watch_interval'; expected 0 or at least 10 seconds."
+            argument_error "Invalid watch interval '$watch_interval'; expected a non-negative integer."
             ;;
     esac
-
-    if [ "$watch_interval" -ne 0 ] && [ "$watch_interval" -lt 10 ]; then
-        argument_error "Invalid watch interval '$watch_interval'; expected 0 or at least 10 seconds."
-    fi
 fi
 [ -z "$log_file" ] || [ -n "$verbose" ] || verbose='info'
 
