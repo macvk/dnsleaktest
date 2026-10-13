@@ -113,19 +113,11 @@ GOOS=windows GOARCH=amd64 CGO_ENABLED=0 go build -o dnsleaktest-windows-amd64.ex
 
 ### Linux
 
-Use host networking so the test sees the host's network stack and DNS
-configuration. This is important when the host uses a local DNS resolver such as
-systemd-resolved or NextDNS.
-
 ```
 docker run --rm --network host python:alpine sh -c 'wget -q -O- https://raw.githubusercontent.com/macvk/dnsleaktest/v1.4/dnsleaktest.py | python'
 ```
 
 ### macOS and Windows
-
-Docker Desktop runs containers in a virtual machine, so host networking does not
-provide the same view of the host's DNS configuration as it does on Linux. The
-following command tests the DNS configuration visible inside the container:
 
 ```
 docker run --rm python:alpine sh -c 'wget -q -O- https://raw.githubusercontent.com/macvk/dnsleaktest/v1.4/dnsleaktest.py | python'

@@ -6,6 +6,7 @@ rem Project: https://github.com/macvk/dnsleaktest
 rem SPDX-License-Identifier: MIT
 
 set "version=1.4.0"
+set "script_path=%~f0"
 set "program_name=%~nx0"
 set "command_line=%program_name% %*"
 set "interface="
@@ -15,6 +16,7 @@ set "probes=30"
 set "parallel=30"
 set "short_output=0"
 set "watch=0"
+set "watch_enabled=0"
 set "result_file=%TEMP%\dnsleaktest-%RANDOM%-%RANDOM%.txt"
 
 :parse_arguments
@@ -65,13 +67,17 @@ shift
 goto parse_arguments
 
 :read_watch
-if "%~2" == "" (
-    call :argument_error "Option %~1 requires a number of seconds."
-    exit /b 2
-)
-set "watch=%~2"
+set "watch=0"
+set "watch_enabled=1"
 set "short_output=1"
 shift
+
+if "%~1" == "" goto parse_arguments
+
+set "watch_value=%~1"
+if "!watch_value:~0,1!" == "-" goto parse_arguments
+
+set "watch=%~1"
 shift
 goto parse_arguments
 
@@ -117,7 +123,7 @@ if not "%watch%" == "0" (
     powershell -NoProfile -Command "if ($env:watch -notmatch '^[1-9][0-9]*$' -or [int]$env:watch -lt 10) { exit 1 }"
 
     if errorlevel 1 (
-        call :argument_error "Invalid watch interval '%watch%'; expected at least 10 seconds."
+        call :argument_error "Invalid watch interval '%watch%'; expected 0 or at least 10 seconds."
         exit /b 2
     )
 )
@@ -236,6 +242,14 @@ if /I "%verbose%" == "trace" (
 
 if errorlevel 1 (
     call :fail "Unable to retrieve DNS leak test results."
+    exit /b 1
+)
+
+findstr /b /c:"ERROR:" "%result_file%" >nul
+
+if not errorlevel 1 (
+    set /p "server_error="<"%result_file%"
+    call :fail "!server_error:~7!"
     exit /b 1
 )
 
@@ -369,7 +383,10 @@ if not errorlevel 1 (
     if not errorlevel 1 (set "test_result=leak_detected") else (set "test_result=unknown")
 )
 
-call :print_line "%date%T%time% !test_result!"
+set "display_result=Unknown"
+if "!test_result!" == "no_leak" set "display_result=No leak detected"
+if "!test_result!" == "leak_detected" set "display_result=Leak detected"
+call :print_line "%date%T%time% !display_result!"
 
 if /I "!verbose!" == "trace" (
     >>"!log_file!" echo !date!T!time! [TRACE] conclusion=!conclusion!
@@ -379,7 +396,7 @@ call :log_info "result=!test_result!"
 call :log_info "dnsleaktest finished; dns_servers=!servers!; exit=0"
 del /q "%result_file%" >nul 2>&1
 
-if "%watch%" == "0" exit /b 0
+if "%watch_enabled%" == "0" exit /b 0
 
 set "watch_args=-s -p %probes% -j %parallel%"
 
@@ -388,9 +405,9 @@ if defined verbose set "watch_args=!watch_args! -v !verbose!"
 if defined log_file set "watch_args=!watch_args! --log-file "!log_file!""
 
 :watch_loop
-timeout /t %watch% /nobreak >nul
+if not "%watch%" == "0" timeout /t %watch% /nobreak >nul
 set "DNSLEAK_WATCH_CHILD=1"
-call "%~f0" !watch_args!
+call "%script_path%" !watch_args!
 goto watch_loop
 
 :print_address
@@ -449,7 +466,7 @@ echo   -i, --interface IP        Use a specific source IP address
 echo   -p, --probes NUMBER      Number of DNS probes to send ^(default: 30^)
 echo   -j, --parallel NUMBER    Maximum simultaneous probes ^(default: 30^)
 echo   -s, --short              Print a one-line result
-echo   -w, --watch SECONDS      Repeat in short mode ^(minimum: 10 seconds^)
+echo   -w, --watch [SECONDS]    Repeat in short mode ^(default: 0; otherwise minimum: 10 seconds^)
 echo   -v, --verbose LEVEL      Write diagnostics: info or trace
 echo       --log-file FILE      Set the log path ^(implies --verbose info^)
 echo   -h, --help               Show this help

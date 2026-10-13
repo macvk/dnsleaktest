@@ -12,7 +12,8 @@ quote_argument() {
 program_name=${0##*/}
 command_line=$(quote_argument "$program_name")
 
-for argument do
+for argument
+do
     command_line="${command_line} $(quote_argument "$argument")"
 done
 
@@ -39,7 +40,7 @@ Options:
   -p, --probes NUMBER      Number of DNS probes to send (default: 30)
   -j, --parallel NUMBER    Maximum simultaneous probes (default: 30)
   -s, --short              Print a one-line result
-  -w, --watch SECONDS      Repeat in short mode (minimum: 10 seconds)
+  -w, --watch [SECONDS]    Repeat in short mode (default: 0; otherwise minimum: 10 seconds)
   -v, --verbose LEVEL      Write diagnostics: info or trace
       --log-file FILE      Set the log path (implies --verbose info)
   -h, --help               Show this help
@@ -79,10 +80,16 @@ while [ "$#" -gt 0 ]; do
             shift
             ;;
         -w|--watch)
-            [ "$#" -ge 2 ] || argument_error "Option $1 requires a number of seconds."
-            watch_interval=$2
+            watch_interval=0
             short_output=1
-            shift 2
+            shift
+
+            if [ "$#" -gt 0 ]; then
+                case "$1" in
+                    -*) ;;
+                    *) watch_interval=$1; shift ;;
+                esac
+            fi
             ;;
         --log-file)
             [ "$#" -ge 2 ] || argument_error "Option --log-file requires a path."
@@ -137,12 +144,12 @@ fi
 if [ -n "$watch_interval" ]; then
     case "$watch_interval" in
         *[!0-9]*)
-            argument_error "Invalid watch interval '$watch_interval'; expected at least 10 seconds."
+            argument_error "Invalid watch interval '$watch_interval'; expected 0 or at least 10 seconds."
             ;;
     esac
 
-    if [ "$watch_interval" -lt 10 ]; then
-        argument_error "Invalid watch interval '$watch_interval'; expected at least 10 seconds."
+    if [ "$watch_interval" -ne 0 ] && [ "$watch_interval" -lt 10 ]; then
+        argument_error "Invalid watch interval '$watch_interval'; expected 0 or at least 10 seconds."
     fi
 fi
 [ -z "$log_file" ] || [ -n "$verbose" ] || verbose='info'
@@ -359,9 +366,9 @@ print_servers() {
     if [ "$jq_exists" -ne 0 ]; then
 
         printf '%s\n' "$result_json" | \
-            jq  --monochrome-output \
+            jq --monochrome-output \
             --raw-output \
-            ".[] | select(.type == \"${1}\") | \"\(.ip)\(if .country_name != \"\" and  .country_name != false then \" [\(.country_name)\(if .asn != \"\" and .asn != false then \", \(.asn)\" else \"\" end)]\" else \"\" end)\""
+            ".[] | select(.type == \"${1}\") | \"\(.ip)\(if .country_name != \"\" and .country_name != false then \" [\(.country_name)\(if .asn != \"\" and .asn != false then \", \(.asn)\" else \"\" end)]\" else \"\" end)\""
 
     else
 
@@ -398,8 +405,15 @@ print_servers() {
 if [ "$jq_exists" -ne 0 ]; then
     log_info "Requesting JSON results"
 
-    if ! result_json=$(curl_request --silent "https://${api_domain}/dnsleak/test/${id}?json"); then
+    if ! result_json=$(curl_request --silent "https://${api_domain}/dnsleak/test/${id}?json=2"); then
         echo_error "Unable to retrieve DNS leak test results."
+        exit "$error_code"
+    fi
+
+    result_error=$(printf '%s\n' "$result_json" | jq --raw-output '[.[] | select(.type == "error")][0].text // empty')
+
+    if [ -n "$result_error" ]; then
+        echo_error "$result_error"
         exit "$error_code"
     fi
 else
@@ -449,7 +463,14 @@ log_info "result=$test_result"
 
 if [ "$short_output" -eq 1 ]; then
     test_finished=$(date +%s)
-    print_line "$(date '+%Y-%m-%dT%H:%M:%S%z') $((test_finished - test_started))s $test_result"
+
+    case "$test_result" in
+        no_leak) display_result='No leak detected' ;;
+        leak_detected) display_result='Leak detected' ;;
+        *) display_result='Unknown' ;;
+    esac
+
+    print_line "$(date '+%Y-%m-%dT%H:%M:%S%z') $((test_finished - test_started))s $display_result"
 else
     echo_bold "Your IP:"
     print_server_lines "ip"
@@ -477,7 +498,9 @@ if [ -z "$watch_interval" ]; then
     exit 0
 fi
 
-sleep "$watch_interval"
+if [ "$watch_interval" -ne 0 ]; then
+    sleep "$watch_interval"
+fi
 
 set -- -p "$probes" -j "$parallel" -w "$watch_interval"
 [ -z "$interface" ] || set -- "$@" -i "$interface"

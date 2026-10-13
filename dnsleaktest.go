@@ -35,6 +35,7 @@ type Block struct {
 	Country     string `json:"country"`
 	CountryName string `json:"country_name"`
 	Asn         string `json:"asn"`
+	Text        string `json:"text"`
 	Type        string `json:"type"`
 }
 
@@ -103,6 +104,25 @@ func commandLine() string {
 	return strings.Join(arguments, " ")
 }
 
+func normalizeWatchArguments(arguments []string) ([]string, bool) {
+	arguments = append([]string(nil), arguments...)
+	watchEnabled := false
+
+	for index, argument := range arguments {
+		if argument == "-w" || argument == "--watch" {
+			watchEnabled = true
+
+			if index+1 == len(arguments) || strings.HasPrefix(arguments[index+1], "-") {
+				arguments[index] += "=0"
+			}
+		} else if strings.HasPrefix(argument, "-w=") || strings.HasPrefix(argument, "--watch=") {
+			watchEnabled = true
+		}
+	}
+
+	return arguments, watchEnabled
+}
+
 func clientForInterface(value string) (*http.Client, error) {
 	if value == "" {
 		return &http.Client{Timeout: 30 * time.Second}, nil
@@ -135,7 +155,7 @@ func clientForInterface(value string) (*http.Client, error) {
 	return &http.Client{Transport: transport, Timeout: 30 * time.Second}, nil
 }
 
-func getContent(url string) ([]byte) {
+func getContent(url string) []byte {
 	started := time.Now()
 	logInfo("HTTP GET %s", safeURL(url))
 	resp, err := httpClient.Get(url)
@@ -158,11 +178,11 @@ func getContent(url string) ([]byte) {
 	return data
 }
 
-func getId() (string) {
+func getId() string {
 	return string(getContent(fmt.Sprintf("https://%s/id", ApiDomain)))
 }
 
-func fakePing(testId string, probes int, parallel int) () {
+func fakePing(testId string, probes int, parallel int) {
 	var wg sync.WaitGroup
 	semaphore := make(chan struct{}, parallel)
 
@@ -188,16 +208,21 @@ func fakePing(testId string, probes int, parallel int) () {
 	wg.Wait()
 }
 
-func getResult(testId string) ([]Block) {
-	// send GET request
-	data := getContent(fmt.Sprintf("https://%s/dnsleak/test/%s?json", ApiDomain, testId))
+func getResult(testId string) []Block {
+	data := getContent(fmt.Sprintf("https://%s/dnsleak/test/%s?json=2", ApiDomain, testId))
 
-	var xml []Block
+	var result []Block
 
-	err := json.Unmarshal(data, &xml)
+	err := json.Unmarshal(data, &result)
 	raiseError(err)
 
-	return xml
+	for _, block := range result {
+		if block.Type == "error" {
+			raiseError(fmt.Errorf("server error: %s", block.Text))
+		}
+	}
+
+	return result
 }
 
 func printResult(result []Block, Type string) {
@@ -287,13 +312,15 @@ func main() {
 		fmt.Fprintln(flags.Output(), "  -p, --probes NUMBER      Number of DNS probes to send (default: 30)")
 		fmt.Fprintln(flags.Output(), "  -j, --parallel NUMBER    Maximum simultaneous probes (default: 30)")
 		fmt.Fprintln(flags.Output(), "  -s, --short              Print a one-line result")
-		fmt.Fprintln(flags.Output(), "  -w, --watch SECONDS      Repeat in short mode (minimum: 10 seconds)")
+		fmt.Fprintln(flags.Output(), "  -w, --watch [SECONDS]    Repeat in short mode (default: 0; otherwise minimum: 10 seconds)")
 		fmt.Fprintln(flags.Output(), "  -v, --verbose LEVEL      Write diagnostics: info or trace")
 		fmt.Fprintln(flags.Output(), "      --log-file FILE      Set the log path (implies --verbose info)")
 		fmt.Fprintln(flags.Output(), "  -h, --help               Show this help")
 	}
 
-	if err := flags.Parse(os.Args[1:]); err != nil {
+	arguments, watchEnabled := normalizeWatchArguments(os.Args[1:])
+
+	if err := flags.Parse(arguments); err != nil {
 		os.Exit(2)
 	}
 	if showHelp {
@@ -317,10 +344,10 @@ func main() {
 		os.Exit(2)
 	}
 	if watch != 0 && watch < 10 {
-		fmt.Fprintln(os.Stderr, "Invalid watch interval; expected at least 10 seconds.")
+		fmt.Fprintln(os.Stderr, "Invalid watch interval; expected 0 or at least 10 seconds.")
 		os.Exit(2)
 	}
-	if watch != 0 {
+	if watchEnabled {
 		shortOutput = true
 	}
 	if logFile != "" && verboseLevel == "" {
@@ -380,17 +407,17 @@ func main() {
 			}
 		}
 
-		status := "unknown"
+		status := "Unknown"
 		if strings.Contains(conclusion, "not leaking") || strings.Contains(conclusion, "no leak") {
-			status = "no_leak"
+			status = "No leak detected"
 		} else if strings.Contains(conclusion, "may be leaking") || strings.Contains(conclusion, "leak detected") {
-			status = "leak_detected"
+			status = "Leak detected"
 		}
 
 		printOutput("%s %.2fs %s\n", time.Now().Format(time.RFC3339), time.Since(testStarted).Seconds(), status)
 		logInfo("dnsleaktest finished; dns_servers=%d; exit=0", dns)
 
-		if watch == 0 {
+		if !watchEnabled {
 			return
 		}
 
@@ -407,7 +434,10 @@ func main() {
 		}
 
 		for {
-			time.Sleep(time.Duration(watch) * time.Second)
+			if watch != 0 {
+				time.Sleep(time.Duration(watch) * time.Second)
+			}
+
 			command := exec.Command(os.Args[0], childArgs...)
 			command.Env = append(os.Environ(), "DNSLEAK_WATCH_CHILD=1")
 			command.Stdout = os.Stdout
