@@ -34,6 +34,8 @@ type Block struct {
 	Ip          string `json:"ip"`
 	Country     string `json:"country"`
 	CountryName string `json:"country_name"`
+	CityName    string `json:"city_name"`
+	RegionName  string `json:"region_name"`
 	Asn         string `json:"asn"`
 	Text        string `json:"text"`
 	Type        string `json:"type"`
@@ -231,18 +233,20 @@ func printResult(result []Block, Type string) {
 			continue
 		}
 
-		if Block.Asn != "" {
-			printOutput("%s [%s, %s]\n", Block.Ip, Block.CountryName, Block.Asn)
-			continue
-		}
-
-		if Block.CountryName != "" {
-			printOutput("%s [%s]\n", Block.Ip, Block.CountryName)
-			continue
-		}
-
 		if Block.Ip != "" {
-			printOutput("%s\n", Block.Ip)
+			location := []string{}
+
+			for _, value := range []string{Block.CityName, Block.RegionName, Block.CountryName, Block.Asn} {
+				if value != "" {
+					location = append(location, value)
+				}
+			}
+
+			if len(location) > 0 {
+				printOutput("%s [%s]\n", Block.Ip, strings.Join(location, ", "))
+			} else {
+				printOutput("%s\n", Block.Ip)
+			}
 		}
 	}
 }
@@ -260,9 +264,9 @@ func logResult(result []Block) {
 	for _, block := range result {
 		switch block.Type {
 		case "ip":
-			logTrace("public_ip=%s; country=%s; asn=%s", block.Ip, block.CountryName, block.Asn)
+			logTrace("public_ip=%s; city=%s; region=%s; country=%s; asn=%s", block.Ip, block.CityName, block.RegionName, block.CountryName, block.Asn)
 		case "dns":
-			logTrace("dns_server=%s; country=%s; asn=%s", block.Ip, block.CountryName, block.Asn)
+			logTrace("dns_server=%s; city=%s; region=%s; country=%s; asn=%s", block.Ip, block.CityName, block.RegionName, block.CountryName, block.Asn)
 		case "conclusion":
 			conclusion = block.Ip
 			logTrace("conclusion=%s", conclusion)

@@ -364,33 +364,45 @@ print_servers() {
         printf '%s\n' "$result_json" | \
             jq --monochrome-output \
             --raw-output \
-            ".[] | select(.type == \"${1}\") | \"\(.ip)\(if .country_name != \"\" and .country_name != false then \" [\(.country_name)\(if .asn != \"\" and .asn != false then \", \(.asn)\" else \"\" end)]\" else \"\" end)\""
+            ".[] | select(.type == \"${1}\") | . as \$record | [\$record.city_name, \$record.region_name, \$record.country_name, \$record.asn] | map(select(. != null and . != false and . != \"\")) as \$location | \"\(\$record.ip)\(if (\$location | length) > 0 then \" [\(\$location | join(\", \"))]\" else \"\" end)\""
 
     else
 
         printf '%s\n' "$result_txt" |
         while IFS= read -r line; do
-            case "$line" in
-                *"$1") ;;
-                *) continue ;;
-            esac
-
             ip=$(printf '%s\n' "$line" | cut -d'|' -f 1)
+            record_type=$(printf '%s\n' "$line" | cut -d'|' -f 5)
+            city=$(printf '%s\n' "$line" | cut -d'|' -f 6)
+            region=$(printf '%s\n' "$line" | cut -d'|' -f 7)
             country=$(printf '%s\n' "$line" | cut -d'|' -f 3)
             asn=$(printf '%s\n' "$line" | cut -d'|' -f 4)
 
-            if is_blank "$ip"; then
-                 continue
+            if [ "$record_type" != "$1" ]; then
+                continue
             fi
 
-            if is_blank "$country"; then
-                             printf '%s\n' "$ip"
+            if is_blank "$ip"; then
+                continue
+            fi
+
+            location=''
+
+            for value in "$city" "$region" "$country" "$asn"; do
+                if is_blank "$value"; then
+                    continue
+                fi
+
+                if [ -n "$location" ]; then
+                    location="${location}, ${value}"
+                else
+                    location=$value
+                fi
+            done
+
+            if [ -n "$location" ]; then
+                printf '%s [%s]\n' "$ip" "$location"
             else
-                 if is_blank "$asn"; then
-                     printf '%s [%s]\n' "$ip" "$country"
-                 else
-                     printf '%s [%s, %s]\n' "$ip" "$country" "$asn"
-                 fi
+                printf '%s\n' "$ip"
             fi
         done
 
@@ -415,7 +427,7 @@ if [ "$jq_exists" -ne 0 ]; then
 else
     log_info "Requesting text results"
 
-    if ! result_txt=$(curl_request --silent "https://${api_domain}/dnsleak/test/${id}?txt"); then
+    if ! result_txt=$(curl_request --silent "https://${api_domain}/dnsleak/test/${id}?txt=2"); then
         echo_error "Unable to retrieve DNS leak test results."
         exit "$error_code"
     fi

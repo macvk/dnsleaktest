@@ -228,15 +228,15 @@ call :log_info "Requesting text results"
 
 if /I "%verbose%" == "trace" (
     if defined interface (
-        curl.exe --verbose --silent --show-error --fail --interface "%interface%" "https://bash.ws/dnsleak/test/%leak_id%?txt" --output "%result_file%" 2>>"%log_file%"
+        curl.exe --verbose --silent --show-error --fail --interface "%interface%" "https://bash.ws/dnsleak/test/%leak_id%?txt=2" --output "%result_file%" 2>>"%log_file%"
     ) else (
-        curl.exe --verbose --silent --show-error --fail "https://bash.ws/dnsleak/test/%leak_id%?txt" --output "%result_file%" 2>>"%log_file%"
+        curl.exe --verbose --silent --show-error --fail "https://bash.ws/dnsleak/test/%leak_id%?txt=2" --output "%result_file%" 2>>"%log_file%"
     )
 ) else (
     if defined interface (
-        curl.exe --silent --show-error --fail --interface "%interface%" "https://bash.ws/dnsleak/test/%leak_id%?txt" --output "%result_file%"
+        curl.exe --silent --show-error --fail --interface "%interface%" "https://bash.ws/dnsleak/test/%leak_id%?txt=2" --output "%result_file%"
     ) else (
-        curl.exe --silent --show-error --fail "https://bash.ws/dnsleak/test/%leak_id%?txt" --output "%result_file%"
+        curl.exe --silent --show-error --fail "https://bash.ws/dnsleak/test/%leak_id%?txt=2" --output "%result_file%"
     )
 )
 
@@ -259,16 +259,18 @@ if "%short_output%" == "1" goto short_result
 
 call :print_line "Your IP:"
 
-for /f "usebackq tokens=1,2,3,4,5 delims=|" %%1 in ("%result_file%") do (
+for /f "usebackq tokens=1,2,3,4,5,6,7 delims=|" %%1 in ("%result_file%") do (
     if "%%5" == "ip" (
         if not "%%1" == "" (
             set "address_ip=%%1"
+            set "address_city=%%6"
+            set "address_region=%%7"
             set "address_country=%%3"
             set "address_asn=%%4"
             call :print_address
 
             if /I "!verbose!" == "trace" (
-                >>"!log_file!" echo !date!T!time! [TRACE] public_ip=!address_ip!; country=!address_country!; asn=!address_asn!
+                >>"!log_file!" echo !date!T!time! [TRACE] public_ip=!address_ip!; city=!address_city!; region=!address_region!; country=!address_country!; asn=!address_asn!
             )
         )
     )
@@ -276,7 +278,7 @@ for /f "usebackq tokens=1,2,3,4,5 delims=|" %%1 in ("%result_file%") do (
 
 set /a servers=0
 
-for /f "usebackq tokens=1,2,3,4,5 delims=|" %%1 in ("%result_file%") do (
+for /f "usebackq tokens=1,2,3,4,5,6,7 delims=|" %%1 in ("%result_file%") do (
     if "%%5" == "dns" set /a servers+=1
 )
 
@@ -289,16 +291,18 @@ if "!servers!" == "0" (
         call :print_line "You use !servers! DNS servers:"
     )
 
-    for /f "usebackq tokens=1,2,3,4,5 delims=|" %%1 in ("%result_file%") do (
+    for /f "usebackq tokens=1,2,3,4,5,6,7 delims=|" %%1 in ("%result_file%") do (
         if "%%5" == "dns" (
             if not "%%1" == "" (
                 set "address_ip=%%1"
+                set "address_city=%%6"
+                set "address_region=%%7"
                 set "address_country=%%3"
                 set "address_asn=%%4"
                 call :print_address
 
                 if /I "!verbose!" == "trace" (
-                    >>"!log_file!" echo !date!T!time! [TRACE] dns_server=!address_ip!; country=!address_country!; asn=!address_asn!
+                    >>"!log_file!" echo !date!T!time! [TRACE] dns_server=!address_ip!; city=!address_city!; region=!address_region!; country=!address_country!; asn=!address_asn!
                 )
             )
         )
@@ -308,7 +312,7 @@ if "!servers!" == "0" (
 call :print_line "Conclusion:"
 set "conclusion="
 
-for /f "usebackq tokens=1,2,3,4,5 delims=|" %%1 in ("%result_file%") do (
+for /f "usebackq tokens=1,2,3,4,5,6,7 delims=|" %%1 in ("%result_file%") do (
     if "%%5" == "conclusion" (
         if not "%%1" == "" (
             set "conclusion=%%1"
@@ -347,15 +351,17 @@ exit /b 0
 set /a servers=0
 set "conclusion="
 
-for /f "usebackq tokens=1,2,3,4,5 delims=|" %%1 in ("%result_file%") do (
+for /f "usebackq tokens=1,2,3,4,5,6,7 delims=|" %%1 in ("%result_file%") do (
     if "%%5" == "ip" (
         if not "%%1" == "" (
             set "address_ip=%%1"
+            set "address_city=%%6"
+            set "address_region=%%7"
             set "address_country=%%3"
             set "address_asn=%%4"
 
             if /I "!verbose!" == "trace" (
-                >>"!log_file!" echo !date!T!time! [TRACE] public_ip=!address_ip!; country=!address_country!; asn=!address_asn!
+                >>"!log_file!" echo !date!T!time! [TRACE] public_ip=!address_ip!; city=!address_city!; region=!address_region!; country=!address_country!; asn=!address_asn!
             )
         )
     )
@@ -363,11 +369,13 @@ for /f "usebackq tokens=1,2,3,4,5 delims=|" %%1 in ("%result_file%") do (
         set /a servers+=1
         if not "%%1" == "" (
             set "address_ip=%%1"
+            set "address_city=%%6"
+            set "address_region=%%7"
             set "address_country=%%3"
             set "address_asn=%%4"
 
             if /I "!verbose!" == "trace" (
-                >>"!log_file!" echo !date!T!time! [TRACE] dns_server=!address_ip!; country=!address_country!; asn=!address_asn!
+                >>"!log_file!" echo !date!T!time! [TRACE] dns_server=!address_ip!; city=!address_city!; region=!address_region!; country=!address_country!; asn=!address_asn!
             )
         )
     )
@@ -411,10 +419,20 @@ call "%script_path%" !watch_args!
 goto watch_loop
 
 :print_address
+set "address_location="
+if defined address_city set "address_location=!address_city!"
+if defined address_region (
+    if defined address_location (set "address_location=!address_location!, !address_region!") else (set "address_location=!address_region!")
+)
+if defined address_country (
+    if defined address_location (set "address_location=!address_location!, !address_country!") else (set "address_location=!address_country!")
+)
 if defined address_asn (
-    set "output_line=!address_ip! [!address_country!, !address_asn!]"
-) else if defined address_country (
-    set "output_line=!address_ip! [!address_country!]"
+    if defined address_location (set "address_location=!address_location!, !address_asn!") else (set "address_location=!address_asn!")
+)
+
+if defined address_location (
+    set "output_line=!address_ip! [!address_location!]"
 ) else (
     set "output_line=!address_ip!"
 )

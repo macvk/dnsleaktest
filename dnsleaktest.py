@@ -194,6 +194,12 @@ def print_output(message):
     diagnostic_log.info(message)
 
 
+def format_address(entry):
+    location = [entry.get(field) for field in ('city_name', 'region_name', 'country_name', 'asn')]
+    location = [value for value in location if value]
+    return entry['ip'] + (' [' + ', '.join(location) + ']' if location else '')
+
+
 def log_uncaught_exception(kind, value, traceback):
     diagnostic_log.info("ERROR: {}".format(value))
     diagnostic_log.info("dnsleaktest finished; exit=1")
@@ -231,9 +237,9 @@ diagnostic_log.trace("Parsed JSON result:")
 
 for entry in parsed_data:
     if entry['type'] == 'ip':
-        diagnostic_log.trace("public_ip={}; country={}; asn={}".format(entry['ip'], entry['country_name'], entry['asn']))
+        diagnostic_log.trace("public_ip={}; city={}; region={}; country={}; asn={}".format(entry['ip'], entry.get('city_name', ''), entry.get('region_name', ''), entry['country_name'], entry['asn']))
     elif entry['type'] == 'dns':
-        diagnostic_log.trace("dns_server={}; country={}; asn={}".format(entry['ip'], entry['country_name'], entry['asn']))
+        diagnostic_log.trace("dns_server={}; city={}; region={}; country={}; asn={}".format(entry['ip'], entry.get('city_name', ''), entry.get('region_name', ''), entry['country_name'], entry['asn']))
     elif entry['type'] == 'conclusion':
         conclusion = entry['ip']
         diagnostic_log.trace("conclusion={}".format(conclusion))
@@ -282,13 +288,7 @@ print_output("Your IP:")
 
 for dns_server in parsed_data:
     if dns_server['type'] == "ip":
-        if dns_server['country_name']:
-            if dns_server['asn']:
-                print_output(dns_server['ip']+" ["+dns_server['country_name']+", " + dns_server['asn']+"]")
-            else:
-                print_output(dns_server['ip']+" ["+dns_server['country_name']+"]")
-        else:
-            print_output(dns_server['ip'])
+        print_output(format_address(dns_server))
 
 servers = 0
 
@@ -306,13 +306,7 @@ else:
 
     for dns_server in parsed_data:
         if dns_server['type'] == "dns":
-            if dns_server['country_name']:
-                if dns_server['asn']:
-                    print_output(dns_server['ip']+" ["+dns_server['country_name'] + ", " + dns_server['asn']+"]")
-                else:
-                    print_output(dns_server['ip']+" ["+dns_server['country_name']+"]")
-            else:
-                print_output(dns_server['ip'])
+            print_output(format_address(dns_server))
 
 print_output("Conclusion:")
 
