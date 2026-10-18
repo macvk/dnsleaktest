@@ -258,7 +258,6 @@ func printOutput(format string, values ...interface{}) {
 }
 
 func logResult(result []Block) {
-	conclusion := ""
 	logTrace("Parsed JSON result:")
 
 	for _, block := range result {
@@ -268,19 +267,8 @@ func logResult(result []Block) {
 		case "dns":
 			logTrace("dns_server=%s; city=%s; region=%s; country=%s; asn=%s", block.Ip, block.CityName, block.RegionName, block.CountryName, block.Asn)
 		case "conclusion":
-			conclusion = block.Ip
-			logTrace("conclusion=%s", conclusion)
+			logTrace("conclusion=%s", block.Ip)
 		}
-	}
-
-	normalized := strings.ToLower(conclusion)
-	switch {
-	case strings.Contains(normalized, "not leaking"), strings.Contains(normalized, "no leak"):
-		logInfo("result=no_leak")
-	case strings.Contains(normalized, "may be leaking"), strings.Contains(normalized, "leak detected"):
-		logInfo("result=leak_detected")
-	default:
-		logInfo("result=unknown")
 	}
 }
 
@@ -407,18 +395,15 @@ func main() {
 
 		for _, block := range result {
 			if block.Type == "conclusion" {
-				conclusion = strings.ToLower(block.Ip)
+				conclusion = block.Ip
 			}
 		}
 
-		status := "Unknown"
-		if strings.Contains(conclusion, "not leaking") || strings.Contains(conclusion, "no leak") {
-			status = "No leak detected"
-		} else if strings.Contains(conclusion, "may be leaking") || strings.Contains(conclusion, "leak detected") {
-			status = "Leak detected"
+		if conclusion == "" {
+			conclusion = "Unknown"
 		}
 
-		printOutput("%s %.2fs %s\n", time.Now().Format(time.RFC3339), time.Since(testStarted).Seconds(), status)
+		printOutput("%s %.2fs %s\n", time.Now().Format(time.RFC3339), time.Since(testStarted).Seconds(), conclusion)
 		logInfo("dnsleaktest finished; dns_servers=%d; exit=0", dns)
 
 		if !watchEnabled {

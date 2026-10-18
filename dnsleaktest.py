@@ -232,7 +232,7 @@ for entry in parsed_data:
     if entry.get('type') == 'error':
         raise RuntimeError(entry.get('text') or 'Unable to retrieve DNS leak test results.')
 
-test_result = 'unknown'
+conclusion = ''
 diagnostic_log.trace("Parsed JSON result:")
 
 for entry in parsed_data:
@@ -243,21 +243,12 @@ for entry in parsed_data:
     elif entry['type'] == 'conclusion':
         conclusion = entry['ip']
         diagnostic_log.trace("conclusion={}".format(conclusion))
-        conclusion_lower = conclusion.lower()
-
-        if 'not leaking' in conclusion_lower or 'no leak' in conclusion_lower:
-            test_result = 'no_leak'
-        elif 'may be leaking' in conclusion_lower or 'leak detected' in conclusion_lower:
-            test_result = 'leak_detected'
-
-diagnostic_log.info("result={}".format(test_result))
 
 if args.short:
     servers = sum(1 for entry in parsed_data if entry['type'] == 'dns')
     elapsed = time.monotonic() - test_started
     timestamp = datetime.datetime.now().astimezone().isoformat(timespec='seconds')
-    display_result = {'no_leak': 'No leak detected', 'leak_detected': 'Leak detected'}.get(test_result, 'Unknown')
-    print_output("{} {:.2f}s {}".format(timestamp, elapsed, display_result))
+    print_output("{} {:.2f}s {}".format(timestamp, elapsed, conclusion or 'Unknown'))
     diagnostic_log.info("dnsleaktest finished; dns_servers={}; exit=0".format(servers))
 
     if args.watch is None:

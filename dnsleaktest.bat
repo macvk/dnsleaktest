@@ -327,21 +327,6 @@ if /I "!verbose!" == "trace" (
     >>"!log_file!" echo !date!T!time! [TRACE] conclusion=!conclusion!
 )
 
-echo(!conclusion! | findstr /I /C:"not leaking" /C:"no leak" >nul
-
-if not errorlevel 1 (
-    set "test_result=no_leak"
-) else (
-    echo(!conclusion! | findstr /I /C:"may be leaking" /C:"leak detected" >nul
-
-    if not errorlevel 1 (
-        set "test_result=leak_detected"
-    ) else (
-        set "test_result=unknown"
-    )
-)
-
-call :log_info "result=!test_result!"
 call :log_info "dnsleaktest finished; dns_servers=!servers!; exit=0"
 
 del /q "%result_file%" >nul 2>&1
@@ -382,25 +367,13 @@ for /f "usebackq tokens=1,2,3,4,5,6,7 delims=|" %%1 in ("%result_file%") do (
     if "%%5" == "conclusion" set "conclusion=%%1"
 )
 
-echo(!conclusion! | findstr /I /C:"not leaking" /C:"no leak" >nul
-
-if not errorlevel 1 (
-    set "test_result=no_leak"
-) else (
-    echo(!conclusion! | findstr /I /C:"may be leaking" /C:"leak detected" >nul
-    if not errorlevel 1 (set "test_result=leak_detected") else (set "test_result=unknown")
-)
-
-set "display_result=Unknown"
-if "!test_result!" == "no_leak" set "display_result=No leak detected"
-if "!test_result!" == "leak_detected" set "display_result=Leak detected"
-call :print_line "%date%T%time% !display_result!"
+if not defined conclusion set "conclusion=Unknown"
+call :print_line "%date%T%time% !conclusion!"
 
 if /I "!verbose!" == "trace" (
     >>"!log_file!" echo !date!T!time! [TRACE] conclusion=!conclusion!
 )
 
-call :log_info "result=!test_result!"
 call :log_info "dnsleaktest finished; dns_servers=!servers!; exit=0"
 del /q "%result_file%" >nul 2>&1
 
@@ -480,7 +453,7 @@ exit /b 1
 echo Usage: %program_name% [OPTIONS]
 echo.
 echo Options:
-echo   -i, --interface IP        Use a specific source IP address
+echo   -i, --interface IP       Use a specific source IP address
 echo   -p, --probes NUMBER      Number of DNS probes to send ^(default: 30^)
 echo   -j, --parallel NUMBER    Maximum simultaneous probes ^(default: 30^)
 echo   -s, --short              Print a one-line result

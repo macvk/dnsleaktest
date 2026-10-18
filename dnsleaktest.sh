@@ -437,18 +437,6 @@ dns_count=$(print_servers "dns" | wc -l | tr -d '[:space:]')
 
 conclusion=$(print_servers "conclusion")
 
-case "$conclusion" in
-    *"not leaking"*|*"No leak"*|*"no leak"*)
-        test_result='no_leak'
-        ;;
-    *"may be leaking"*|*"leak detected"*|*"Leak detected"*)
-        test_result='leak_detected'
-        ;;
-    *)
-        test_result='unknown'
-        ;;
-esac
-
 if [ "$verbose" = trace ]; then
     if [ "$jq_exists" -ne 0 ]; then
         log_trace "Parsed JSON result:"
@@ -467,18 +455,10 @@ if [ "$verbose" = trace ]; then
     log_trace "conclusion=$conclusion"
 fi
 
-log_info "result=$test_result"
-
 if [ "$short_output" -eq 1 ]; then
     test_finished=$(date +%s)
-
-    case "$test_result" in
-        no_leak) display_result='No leak detected' ;;
-        leak_detected) display_result='Leak detected' ;;
-        *) display_result='Unknown' ;;
-    esac
-
-    print_line "$(date '+%Y-%m-%dT%H:%M:%S%z') $((test_finished - test_started))s $display_result"
+    [ -n "$conclusion" ] || conclusion='Unknown'
+    print_line "$(date '+%Y-%m-%dT%H:%M:%S%z') $((test_finished - test_started))s $conclusion"
 else
     echo_bold "Your IP:"
     print_server_lines "ip"
