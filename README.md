@@ -10,10 +10,10 @@ may be leaking outside the intended connection or VPN.
 
 Please, before use make sure you have `curl` and `ping` installed.
 
-1. Download `dnsleaktest.sh` from v1.4:
+1. Download `dnsleaktest.sh` from the master branch:
 
 ```sh
-curl -fLO https://raw.githubusercontent.com/macvk/dnsleaktest/v1.4/dnsleaktest.sh
+curl -fLO https://raw.githubusercontent.com/macvk/dnsleaktest/master/dnsleaktest.sh
 ```
 
 ```sh
@@ -28,10 +28,10 @@ chmod +x dnsleaktest.sh
 
 ### How to install and use the Python version
 
-1. Download `dnsleaktest.py` from [v1.4](https://github.com/macvk/dnsleaktest/releases/tag/v1.4):
+1. Download `dnsleaktest.py` from the master branch:
 
 ```sh
-curl -fLO https://raw.githubusercontent.com/macvk/dnsleaktest/v1.4/dnsleaktest.py
+curl -fLO https://raw.githubusercontent.com/macvk/dnsleaktest/master/dnsleaktest.py
 ```
 
 ```sh
@@ -50,10 +50,10 @@ chmod +x dnsleaktest.py
 
 ### How to install and use the batch file
 
-1. Download dnsleaktest.bat
+1. Download `dnsleaktest.bat` from the master branch:
 
 ```powershell
-Invoke-WebRequest -UseBasicParsing https://raw.githubusercontent.com/macvk/dnsleaktest/v1.4/dnsleaktest.bat -OutFile dnsleaktest.bat
+Invoke-WebRequest -UseBasicParsing https://raw.githubusercontent.com/macvk/dnsleaktest/master/dnsleaktest.bat -OutFile dnsleaktest.bat
 ```
 
 2. Run `dnsleaktest.bat`:
@@ -114,11 +114,11 @@ GOOS=windows GOARCH=amd64 CGO_ENABLED=0 go build -o dnsleaktest-windows-amd64.ex
 ### Linux
 
 ```
-docker run --rm --network host python:alpine sh -c 'wget -q -O- https://raw.githubusercontent.com/macvk/dnsleaktest/v1.4/dnsleaktest.py | python'
+docker run --rm --network host python:alpine sh -c 'wget -q -O- https://raw.githubusercontent.com/macvk/dnsleaktest/master/dnsleaktest.py | python'
 ```
 
 ### macOS and Windows
 
 ```
-docker run --rm python:alpine sh -c 'wget -q -O- https://raw.githubusercontent.com/macvk/dnsleaktest/v1.4/dnsleaktest.py | python'
+docker run --rm python:alpine sh -c 'wget -q -O- https://raw.githubusercontent.com/macvk/dnsleaktest/master/dnsleaktest.py | python'
 ```
