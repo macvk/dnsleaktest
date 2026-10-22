@@ -20,8 +20,9 @@ from platform import system as system_name
 
 try:
     from urllib.request import urlopen
+    from urllib.error import HTTPError, URLError
 except ImportError:
-    from urllib2 import urlopen
+    from urllib2 import HTTPError, URLError, urlopen
 
 
 def parse_args():
@@ -178,6 +179,13 @@ def get_content(url, interface, diagnostic_log):
     return data.decode('utf-8')
 
 
+def register_address(family, test_id, interface, diagnostic_log):
+    try:
+        get_content("https://{}.bash.ws/myip/test/{}".format(family, test_id), interface, diagnostic_log)
+    except (HTTPError, URLError, RuntimeError, OSError) as error:
+        diagnostic_log.info("{} address unavailable: {}".format(family.upper(), error))
+
+
 def print_output(message):
     print(message)
     diagnostic_log.info(message)
@@ -218,9 +226,11 @@ diagnostic_log.info("{} version {} started; OS={}; interface={}; probes={}; para
 diagnostic_log.info("Command line: {}".format(command_line))
 test_started = time.monotonic()
 
-data = get_content("https://bash.ws/id", args.interface, diagnostic_log)
+leak_id = get_content("https://bash.ws/id", args.interface, diagnostic_log).strip()
 
-leak_id = data
+with ThreadPoolExecutor(max_workers=2) as executor:
+    futures = [executor.submit(register_address, family, leak_id, args.interface, diagnostic_log) for family in ('ipv4', 'ipv6')]
+    [future.result() for future in futures]
 
 with ThreadPoolExecutor(max_workers=min(args.probes, args.parallel)) as executor:
     futures = [executor.submit(ping, '.'.join([str(x), leak_id, "bash.ws"]), args.interface, diagnostic_log, x, args.probes) for x in range(1, args.probes + 1)]

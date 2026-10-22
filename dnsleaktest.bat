@@ -236,6 +236,14 @@ if not defined leak_id (
 call :log_info "Test ID received; bytes available"
 
 if defined interface (
+    curl.exe --silent --show-error --fail --max-time 5 -4 --interface "%interface%" "https://ipv4.bash.ws/myip/test/%leak_id%" >nul 2>&1
+    curl.exe --silent --show-error --fail --max-time 5 -6 --interface "%interface%" "https://ipv6.bash.ws/myip/test/%leak_id%" >nul 2>&1
+) else (
+    curl.exe --silent --show-error --fail --max-time 5 -4 "https://ipv4.bash.ws/myip/test/%leak_id%" >nul 2>&1
+    curl.exe --silent --show-error --fail --max-time 5 -6 "https://ipv6.bash.ws/myip/test/%leak_id%" >nul 2>&1
+)
+
+if defined interface (
     call :log_info "Starting %probes% DNS probes with source IP %interface%"
 
     powershell -NoProfile -Command "& { for ($start = 1; $start -le %probes%; $start += %parallel%) { $end = [Math]::Min($start + %parallel% - 1, %probes%); $procs = $start..$end | ForEach-Object { $hostName = ('{0}.%leak_id%.bash.ws' -f $_); Start-Process ping.exe -ArgumentList @('-n','1','-w','1000','-S','%interface%',$hostName) -WindowStyle Hidden -PassThru }; $procs | Wait-Process -Timeout 3 -ErrorAction SilentlyContinue; $procs | Where-Object { -not $_.HasExited } | Stop-Process -Force } }"

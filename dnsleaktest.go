@@ -125,9 +125,9 @@ func normalizeWatchArguments(arguments []string) ([]string, bool) {
 	return arguments, watchEnabled
 }
 
-func clientForInterface(value string) (*http.Client, error) {
+func clientForInterfaceFamily(value string, timeout time.Duration, family int) (*http.Client, error) {
 	if value == "" {
-		return &http.Client{Timeout: 30 * time.Second}, nil
+		return &http.Client{Timeout: timeout}, nil
 	}
 	ip := net.ParseIP(value)
 	if ip == nil {
@@ -141,20 +141,31 @@ func clientForInterface(value string) (*http.Client, error) {
 		}
 		for _, address := range addresses {
 			candidate, _, _ := net.ParseCIDR(address.String())
-			if candidate != nil && !candidate.IsLoopback() {
-				ip = candidate
-				break
+			if candidate == nil || candidate.IsLoopback() {
+				continue
 			}
+			if (family == 4 && candidate.To4() == nil) || (family == 6 && candidate.To4() != nil) {
+				continue
+			}
+			ip = candidate
+			break
 		}
 	}
 	if ip == nil {
 		return nil, fmt.Errorf("cannot determine an address for interface %q", value)
 	}
+	if (family == 4 && ip.To4() == nil) || (family == 6 && ip.To4() != nil) {
+		return nil, fmt.Errorf("address %q is not IPv%d", value, family)
+	}
 	dialer := &net.Dialer{LocalAddr: &net.TCPAddr{IP: ip}}
 	transport := &http.Transport{DialContext: func(ctx context.Context, network, address string) (net.Conn, error) {
 		return dialer.DialContext(ctx, network, address)
 	}}
-	return &http.Client{Transport: transport, Timeout: 30 * time.Second}, nil
+	return &http.Client{Transport: transport, Timeout: timeout}, nil
+}
+
+func clientForInterface(value string) (*http.Client, error) {
+	return clientForInterfaceFamily(value, 30*time.Second, 0)
 }
 
 func getContent(url string) []byte {
@@ -182,6 +193,40 @@ func getContent(url string) []byte {
 
 func getId() string {
 	return string(getContent(fmt.Sprintf("https://%s/id", ApiDomain)))
+}
+
+func registerAddresses(testId, networkInterface string) {
+	var wg sync.WaitGroup
+
+	for _, family := range []int{4, 6} {
+		wg.Add(1)
+
+		go func(family int) {
+			defer wg.Done()
+			client, err := clientForInterfaceFamily(networkInterface, 5*time.Second, family)
+
+			if err != nil {
+				logInfo("IPv%d address unavailable: %v", family, err)
+				return
+			}
+
+			target := fmt.Sprintf("https://ipv%d.%s/myip/test/%s", family, ApiDomain, testId)
+			response, err := client.Get(target)
+
+			if err != nil {
+				logInfo("IPv%d address unavailable: %v", family, err)
+				return
+			}
+
+			response.Body.Close()
+
+			if response.StatusCode != http.StatusOK {
+				logInfo("IPv%d address unavailable: HTTP %d", family, response.StatusCode)
+			}
+		}(family)
+	}
+
+	wg.Wait()
 }
 
 func fakePing(testId string, probes int, parallel int) {
@@ -372,6 +417,7 @@ func main() {
 
 	// get an id fo testing
 	testId := getId()
+	registerAddresses(testId, networkInterface)
 
 	// ping fake domains
 	fakePing(testId, probes, parallel)

@@ -369,6 +369,9 @@ fi
 log_info "Test ID received; bytes=${#id}"
 increment_error_code
 
+curl_request -4 --silent --show-error --fail --max-time 5 "https://ipv4.${api_domain}/myip/test/${id}" > /dev/null 2>&1 || :
+curl_request -6 --silent --show-error --fail --max-time 5 "https://ipv6.${api_domain}/myip/test/${id}" > /dev/null 2>&1 || :
+
 i=1
 active_probes=0
 
