@@ -5,7 +5,7 @@ rem DNS leak test client for bash.ws.
 rem Project: https://github.com/macvk/dnsleaktest
 rem SPDX-License-Identifier: MIT
 
-set "version=1.4.0"
+set "version=1.5.0"
 set "script_path=%~f0"
 set "program_name=%~nx0"
 set "command_line=%program_name% %*"
@@ -23,19 +23,33 @@ set "result_file=%TEMP%\dnsleaktest-%RANDOM%-%RANDOM%.txt"
 if "%~1" == "" goto arguments_parsed
 
 if /I "%~1" == "-i" goto read_interface
+
 if /I "%~1" == "--interface" goto read_interface
+
 if /I "%~1" == "-p" goto read_probes
+
 if /I "%~1" == "--probes" goto read_probes
+
 if /I "%~1" == "-j" goto read_parallel
+
 if /I "%~1" == "--parallel" goto read_parallel
+
 if /I "%~1" == "-s" goto enable_short
+
 if /I "%~1" == "--short" goto enable_short
+
 if /I "%~1" == "-w" goto read_watch
+
 if /I "%~1" == "--watch" goto read_watch
+
 if /I "%~1" == "-v" goto read_verbose
+
 if /I "%~1" == "--verbose" goto read_verbose
+
 if /I "%~1" == "--log-file" goto read_log_file
+
 if /I "%~1" == "-h" goto show_help
+
 if /I "%~1" == "--help" goto show_help
 
 call :argument_error "Unknown option: %~1"
@@ -46,6 +60,7 @@ if "%~2" == "" (
     call :argument_error "Option %~1 requires a source IP address."
     exit /b 2
 )
+
 set "interface=%~2"
 shift
 shift
@@ -56,6 +71,7 @@ if "%~2" == "" (
     call :argument_error "Option %~1 requires a number."
     exit /b 2
 )
+
 set "probes=%~2"
 shift
 shift
@@ -75,6 +91,7 @@ shift
 if "%~1" == "" goto parse_arguments
 
 set "watch_value=%~1"
+
 if "!watch_value:~0,1!" == "-" goto parse_arguments
 
 set "watch=%~1"
@@ -86,6 +103,7 @@ if "%~2" == "" (
     call :argument_error "Option %~1 requires a number."
     exit /b 2
 )
+
 set "parallel=%~2"
 shift
 shift
@@ -96,6 +114,7 @@ if "%~2" == "" (
     call :argument_error "Option %~1 requires info or trace."
     exit /b 2
 )
+
 set "verbose=%~2"
 shift
 shift
@@ -106,6 +125,7 @@ if "%~2" == "" (
     call :argument_error "Option --log-file requires a path."
     exit /b 2
 )
+
 set "log_file=%~2"
 shift
 shift
@@ -145,7 +165,9 @@ if defined verbose (
 )
 
 if defined log_file (
-    if not defined verbose set "verbose=info"
+    if not defined verbose (
+        set "verbose=info"
+    )
 )
 
 if defined verbose (
@@ -159,7 +181,9 @@ if defined verbose (
 
     for %%D in ("!log_file!\..") do set "log_dir=%%~fD"
 
-    if not exist "!log_dir!" mkdir "!log_dir!" 2>nul
+    if not exist "!log_dir!" (
+        mkdir "!log_dir!" 2>nul
+    )
 
     if not exist "!log_dir!" (
         call :argument_error "Cannot create diagnostic log directory: !log_dir!"
@@ -173,7 +197,9 @@ if defined verbose (
         exit /b 2
     )
 
-    if not "%DNSLEAK_WATCH_CHILD%" == "1" echo Diagnostic log: !log_file!
+    if not "%DNSLEAK_WATCH_CHILD%" == "1" (
+        echo Diagnostic log: !log_file!
+    )
 )
 
 call :log_info "%program_name% version %version% started; OS=Windows; requested_interface=%interface%; probes=%probes%; parallel=%parallel%"
@@ -279,7 +305,9 @@ for /f "usebackq tokens=1,2,3,4,5,6,7 delims=|" %%1 in ("%result_file%") do (
 set /a servers=0
 
 for /f "usebackq tokens=1,2,3,4,5,6,7 delims=|" %%1 in ("%result_file%") do (
-    if "%%5" == "dns" set /a servers+=1
+    if "%%5" == "dns" (
+        set /a servers+=1
+    )
 )
 
 if "!servers!" == "0" (
@@ -350,8 +378,10 @@ for /f "usebackq tokens=1,2,3,4,5,6,7 delims=|" %%1 in ("%result_file%") do (
             )
         )
     )
+
     if "%%5" == "dns" (
         set /a servers+=1
+
         if not "%%1" == "" (
             set "address_ip=%%1"
             set "address_city=%%6"
@@ -364,10 +394,16 @@ for /f "usebackq tokens=1,2,3,4,5,6,7 delims=|" %%1 in ("%result_file%") do (
             )
         )
     )
-    if "%%5" == "conclusion" set "conclusion=%%1"
+
+    if "%%5" == "conclusion" (
+        set "conclusion=%%1"
+    )
 )
 
-if not defined conclusion set "conclusion=Unknown"
+if not defined conclusion (
+    set "conclusion=Unknown"
+)
+
 call :print_line "%date%T%time% !conclusion!"
 
 if /I "!verbose!" == "trace" (
@@ -377,31 +413,62 @@ if /I "!verbose!" == "trace" (
 call :log_info "dnsleaktest finished; dns_servers=!servers!; exit=0"
 del /q "%result_file%" >nul 2>&1
 
-if "%watch_enabled%" == "0" exit /b 0
+if "%watch_enabled%" == "0" (
+    exit /b 0
+)
 
 set "watch_args=-s -p %probes% -j %parallel%"
 
-if defined interface set "watch_args=!watch_args! -i "!interface!""
-if defined verbose set "watch_args=!watch_args! -v !verbose!"
-if defined log_file set "watch_args=!watch_args! --log-file "!log_file!""
+if defined interface (
+    set "watch_args=!watch_args! -i "!interface!""
+)
+
+if defined verbose (
+    set "watch_args=!watch_args! -v !verbose!"
+)
+
+if defined log_file (
+    set "watch_args=!watch_args! --log-file "!log_file!""
+)
 
 :watch_loop
-if not "%watch%" == "0" timeout /t %watch% /nobreak >nul
+if not "%watch%" == "0" (
+    timeout /t %watch% /nobreak >nul
+)
+
 set "DNSLEAK_WATCH_CHILD=1"
 call "%script_path%" !watch_args!
 goto watch_loop
 
 :print_address
 set "address_location="
-if defined address_city set "address_location=!address_city!"
+
+if defined address_city (
+    set "address_location=!address_city!"
+)
+
 if defined address_region (
-    if defined address_location (set "address_location=!address_location!, !address_region!") else (set "address_location=!address_region!")
+    if defined address_location (
+        set "address_location=!address_location!, !address_region!"
+    ) else (
+        set "address_location=!address_region!"
+    )
 )
+
 if defined address_country (
-    if defined address_location (set "address_location=!address_location!, !address_country!") else (set "address_location=!address_country!")
+    if defined address_location (
+        set "address_location=!address_location!, !address_country!"
+    ) else (
+        set "address_location=!address_country!"
+    )
 )
+
 if defined address_asn (
-    if defined address_location (set "address_location=!address_location!, !address_asn!") else (set "address_location=!address_asn!")
+    if defined address_location (
+        set "address_location=!address_location!, !address_asn!"
+    ) else (
+        set "address_location=!address_asn!"
+    )
 )
 
 if defined address_location (
@@ -428,12 +495,18 @@ if defined verbose (
 exit /b 0
 
 :log_info
-if not defined verbose exit /b 0
+if not defined verbose (
+    exit /b 0
+)
+
 >>"!log_file!" echo %date%T%time% [INFO] %~1
 exit /b 0
 
 :log_trace
-if /I not "!verbose!" == "trace" exit /b 0
+if /I not "!verbose!" == "trace" (
+    exit /b 0
+)
+
 >>"!log_file!" echo %date%T%time% [TRACE] %~1
 exit /b 0
 

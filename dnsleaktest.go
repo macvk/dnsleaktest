@@ -23,7 +23,7 @@ import (
 	"time"
 )
 
-const Version = "1.4.0"
+const Version = "1.5.0"
 
 var ApiDomain = "bash.ws"
 var httpClient = &http.Client{Timeout: 30 * time.Second}

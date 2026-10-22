@@ -3,10 +3,192 @@
 # Project: https://github.com/macvk/dnsleaktest
 # SPDX-License-Identifier: MIT
 
-version='1.4.0'
+version='1.5.0'
 
 quote_argument() {
     printf "'%s'" "$(printf '%s' "$1" | sed "s/'/'\\\\''/g")"
+}
+
+usage() {
+    cat <<EOF
+Usage: ${program_name} [OPTIONS]
+
+Options:
+  -i, --interface NAME|IP  Use a specific network interface
+  -p, --probes NUMBER      Number of DNS probes to send (default: 30)
+  -j, --parallel NUMBER    Maximum simultaneous probes (default: 30)
+  -s, --short              Print a one-line result
+  -w, --watch [SECONDS]    Repeat in short mode (default: 0 seconds)
+  -v, --verbose LEVEL      Write diagnostics: info or trace
+      --log-file FILE      Set the log path (implies --verbose info)
+  -h, --help               Show this help
+EOF
+}
+
+argument_error() {
+    printf '%s\n' "$1" >&2
+    printf "%s\n" "Try '${program_name} --help' for more information." >&2
+    exit 2
+}
+
+log_info() {
+    [ -z "$verbose" ] ||
+        printf '%s [INFO] %s\n' "$(date '+%Y-%m-%dT%H:%M:%S%z')" "$*" >> "$log_file"
+}
+
+log_trace() {
+    [ "$verbose" != trace ] ||
+        printf '%s [TRACE] %s\n' "$(date '+%Y-%m-%dT%H:%M:%S%z')" "$*" >> "$log_file"
+}
+
+echo_bold() {
+    printf '%b\n' "${BOLD}${1}${NC}"
+    log_info "$1"
+}
+
+print_line() {
+    printf '%s\n' "$1"
+    log_info "$1"
+}
+
+print_server_lines() {
+    print_servers "$1" | while IFS= read -r output_line; do
+        print_line "$output_line"
+    done
+}
+
+increment_error_code() {
+    error_code=$((error_code + 1))
+}
+
+echo_error() {
+    printf '%b\n' "${RED}${1}${NC}" >&2
+    log_info "ERROR: $1"
+    log_info "dnsleaktest finished; exit=$error_code"
+}
+
+require_command() {
+    if ! command -v "$1" > /dev/null 2>&1; then
+        echo_error "Please, install \"$1\""
+        exit "$error_code"
+    fi
+    increment_error_code
+}
+
+curl_request() {
+    if [ "$verbose" = trace ]; then
+        log_trace "curl request started"
+        if [ -n "$interface" ]; then
+            curl --verbose --interface "$interface" "$@" 2>> "$log_file"
+        else
+            curl --verbose "$@" 2>> "$log_file"
+        fi
+        status=$?
+        log_trace "curl request finished; exit=$status"
+        return "$status"
+    fi
+    if [ -n "$log_file" ] && [ -n "$interface" ]; then
+        curl --interface "$interface" "$@" 2>> "$log_file"
+    elif [ -n "$log_file" ]; then
+        curl "$@" 2>> "$log_file"
+    elif [ -n "$interface" ]; then
+        curl --interface "$interface" "$@"
+    else
+        curl "$@"
+    fi
+}
+
+ping_request() {
+    if [ "$verbose" = trace ]; then
+        trace_output=${probe_trace_file:-$log_file}
+        printf '%s [TRACE] ping %s\n' "$(date '+%Y-%m-%dT%H:%M:%S%z')" "$*" >> "$trace_output"
+    else
+        trace_output=/dev/null
+    fi
+    if [ -n "$interface" ]; then
+        if [ "$(uname -s 2>/dev/null)" = Darwin ]; then
+            case "$interface" in
+                *:*|*[0-9].[0-9]*)
+                    ping -S "$interface" "$@" >> "$trace_output" 2>&1
+                    ;;
+                *)
+                    ping -b "$interface" "$@" >> "$trace_output" 2>&1
+                    ;;
+            esac
+        else
+            ping -I "$interface" "$@" >> "$trace_output" 2>&1
+        fi
+    else
+        ping "$@" >> "$trace_output" 2>&1
+    fi
+}
+
+check_internet_connection() {
+    log_info "Checking connectivity to ${api_domain}"
+    if ! curl_request --silent --head --request GET "https://${api_domain}" | grep -q "200 OK"; then
+        echo_error "No internet connection."
+        exit "$error_code"
+    fi
+    increment_error_code
+}
+
+is_blank() {
+    case "$1" in
+        *[![:space:]]*) return 1 ;;
+        *) return 0 ;;
+    esac
+}
+
+print_servers() {
+
+    if [ "$jq_exists" -ne 0 ]; then
+
+        printf '%s\n' "$result_json" | \
+            jq --monochrome-output \
+            --raw-output \
+            ".[] | select(.type == \"${1}\") | . as \$record | [\$record.city_name, \$record.region_name, \$record.country_name, \$record.asn] | map(select(. != null and . != false and . != \"\")) as \$location | \"\(\$record.ip)\(if (\$location | length) > 0 then \" [\(\$location | join(\", \"))]\" else \"\" end)\""
+
+    else
+
+        printf '%s\n' "$result_txt" |
+        while IFS= read -r line; do
+            ip=$(printf '%s\n' "$line" | cut -d'|' -f 1)
+            record_type=$(printf '%s\n' "$line" | cut -d'|' -f 5)
+            city=$(printf '%s\n' "$line" | cut -d'|' -f 6)
+            region=$(printf '%s\n' "$line" | cut -d'|' -f 7)
+            country=$(printf '%s\n' "$line" | cut -d'|' -f 3)
+            asn=$(printf '%s\n' "$line" | cut -d'|' -f 4)
+
+            if [ "$record_type" != "$1" ]; then
+                continue
+            fi
+
+            if is_blank "$ip"; then
+                continue
+            fi
+
+            location=''
+
+            for value in "$city" "$region" "$country" "$asn"; do
+                if is_blank "$value"; then
+                    continue
+                fi
+
+                if [ -n "$location" ]; then
+                    location="${location}, ${value}"
+                else
+                    location=$value
+                fi
+            done
+
+            if [ -n "$location" ]; then
+                printf '%s [%s]\n' "$ip" "$location"
+            else
+                printf '%s\n' "$ip"
+            fi
+        done
+
+    fi
 }
 
 program_name=${0##*/}
@@ -30,28 +212,6 @@ probes=30
 parallel=30
 short_output=0
 watch_interval=''
-
-usage() {
-    cat <<EOF
-Usage: ${program_name} [OPTIONS]
-
-Options:
-  -i, --interface NAME|IP  Use a specific network interface
-  -p, --probes NUMBER      Number of DNS probes to send (default: 30)
-  -j, --parallel NUMBER    Maximum simultaneous probes (default: 30)
-  -s, --short              Print a one-line result
-  -w, --watch [SECONDS]    Repeat in short mode (default: 0 seconds)
-  -v, --verbose LEVEL      Write diagnostics: info or trace
-      --log-file FILE      Set the log path (implies --verbose info)
-  -h, --help               Show this help
-EOF
-}
-
-argument_error() {
-    printf '%s\n' "$1" >&2
-    printf "%s\n" "Try '${program_name} --help' for more information." >&2
-    exit 2
-}
 
 while [ "$#" -gt 0 ]; do
     case "$1" in
@@ -175,34 +335,8 @@ if [ -n "$verbose" ]; then
     fi
 fi
 
-log_info() {
-    [ -z "$verbose" ] ||
-        printf '%s [INFO] %s\n' "$(date '+%Y-%m-%dT%H:%M:%S%z')" "$*" >> "$log_file"
-}
-
-log_trace() {
-    [ "$verbose" != trace ] ||
-        printf '%s [TRACE] %s\n' "$(date '+%Y-%m-%dT%H:%M:%S%z')" "$*" >> "$log_file"
-}
-
 log_info "${program_name} version ${version} started; OS=$(uname -s 2>/dev/null); interface=${interface:-default}; probes=$probes; parallel=$parallel"
 log_info "Command line: ${command_line}"
-
-echo_bold() {
-    printf '%b\n' "${BOLD}${1}${NC}"
-    log_info "$1"
-}
-
-print_line() {
-    printf '%s\n' "$1"
-    log_info "$1"
-}
-
-print_server_lines() {
-    print_servers "$1" | while IFS= read -r output_line; do
-        print_line "$output_line"
-    done
-}
 
 if [ -z "$interface" ]; then
     :
@@ -210,81 +344,6 @@ else
     echo_bold "Interface: ${interface}"
     printf '\n'
 fi
-
-increment_error_code() {
-    error_code=$((error_code + 1))
-}
-
-echo_error() {
-    printf '%b\n' "${RED}${1}${NC}" >&2
-    log_info "ERROR: $1"
-    log_info "dnsleaktest finished; exit=$error_code"
-}
-
-require_command() {
-    if ! command -v "$1" > /dev/null 2>&1; then
-        echo_error "Please, install \"$1\""
-        exit "$error_code"
-    fi
-    increment_error_code
-}
-
-curl_request() {
-    if [ "$verbose" = trace ]; then
-        log_trace "curl request started"
-        if [ -n "$interface" ]; then
-            curl --verbose --interface "$interface" "$@" 2>> "$log_file"
-        else
-            curl --verbose "$@" 2>> "$log_file"
-        fi
-        status=$?
-        log_trace "curl request finished; exit=$status"
-        return "$status"
-    fi
-    if [ -n "$log_file" ] && [ -n "$interface" ]; then
-        curl --interface "$interface" "$@" 2>> "$log_file"
-    elif [ -n "$log_file" ]; then
-        curl "$@" 2>> "$log_file"
-    elif [ -n "$interface" ]; then
-        curl --interface "$interface" "$@"
-    else
-        curl "$@"
-    fi
-}
-
-ping_request() {
-    if [ "$verbose" = trace ]; then
-        trace_output=${probe_trace_file:-$log_file}
-        printf '%s [TRACE] ping %s\n' "$(date '+%Y-%m-%dT%H:%M:%S%z')" "$*" >> "$trace_output"
-    else
-        trace_output=/dev/null
-    fi
-    if [ -n "$interface" ]; then
-        if [ "$(uname -s 2>/dev/null)" = Darwin ]; then
-            case "$interface" in
-                *:*|*[0-9].[0-9]*)
-                    ping -S "$interface" "$@" >> "$trace_output" 2>&1
-                    ;;
-                *)
-                    ping -b "$interface" "$@" >> "$trace_output" 2>&1
-                    ;;
-            esac
-        else
-            ping -I "$interface" "$@" >> "$trace_output" 2>&1
-        fi
-    else
-        ping "$@" >> "$trace_output" 2>&1
-    fi
-}
-
-check_internet_connection() {
-    log_info "Checking connectivity to ${api_domain}"
-    if ! curl_request --silent --head --request GET "https://${api_domain}" | grep -q "200 OK"; then
-        echo_error "No internet connection."
-        exit "$error_code"
-    fi
-    increment_error_code
-}
 
 require_command curl
 require_command ping
@@ -349,66 +408,6 @@ if [ "$verbose" = trace ]; then
         i=$((i + 1))
     done
 fi
-
-is_blank() {
-    case "$1" in
-        *[![:space:]]*) return 1 ;;
-        *) return 0 ;;
-    esac
-}
-
-print_servers() {
-
-    if [ "$jq_exists" -ne 0 ]; then
-
-        printf '%s\n' "$result_json" | \
-            jq --monochrome-output \
-            --raw-output \
-            ".[] | select(.type == \"${1}\") | . as \$record | [\$record.city_name, \$record.region_name, \$record.country_name, \$record.asn] | map(select(. != null and . != false and . != \"\")) as \$location | \"\(\$record.ip)\(if (\$location | length) > 0 then \" [\(\$location | join(\", \"))]\" else \"\" end)\""
-
-    else
-
-        printf '%s\n' "$result_txt" |
-        while IFS= read -r line; do
-            ip=$(printf '%s\n' "$line" | cut -d'|' -f 1)
-            record_type=$(printf '%s\n' "$line" | cut -d'|' -f 5)
-            city=$(printf '%s\n' "$line" | cut -d'|' -f 6)
-            region=$(printf '%s\n' "$line" | cut -d'|' -f 7)
-            country=$(printf '%s\n' "$line" | cut -d'|' -f 3)
-            asn=$(printf '%s\n' "$line" | cut -d'|' -f 4)
-
-            if [ "$record_type" != "$1" ]; then
-                continue
-            fi
-
-            if is_blank "$ip"; then
-                continue
-            fi
-
-            location=''
-
-            for value in "$city" "$region" "$country" "$asn"; do
-                if is_blank "$value"; then
-                    continue
-                fi
-
-                if [ -n "$location" ]; then
-                    location="${location}, ${value}"
-                else
-                    location=$value
-                fi
-            done
-
-            if [ -n "$location" ]; then
-                printf '%s [%s]\n' "$ip" "$location"
-            else
-                printf '%s\n' "$ip"
-            fi
-        done
-
-    fi
-}
-
 
 if [ "$jq_exists" -ne 0 ]; then
     log_info "Requesting JSON results"

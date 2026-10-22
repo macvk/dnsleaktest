@@ -4,7 +4,7 @@
 # Project: https://github.com/macvk/dnsleaktest
 # SPDX-License-Identifier: MIT
 
-VERSION = '1.4.0'
+VERSION = '1.5.0'
 
 import os
 import subprocess
@@ -178,17 +178,6 @@ def get_content(url, interface, diagnostic_log):
     return data.decode('utf-8')
 
 
-args = parse_args()
-
-if args.watch is not None:
-    args.short = True
-
-if args.log_file and not args.verbose:
-    args.verbose = 'info'
-
-diagnostic_log = DiagnosticLog(args.verbose, args.log_file or default_log_file())
-
-
 def print_output(message):
     print(message)
     diagnostic_log.info(message)
@@ -204,6 +193,18 @@ def log_uncaught_exception(kind, value, traceback):
     diagnostic_log.info("ERROR: {}".format(value))
     diagnostic_log.info("dnsleaktest finished; exit=1")
     sys.__excepthook__(kind, value, traceback)
+
+
+
+args = parse_args()
+
+if args.watch is not None:
+    args.short = True
+
+if args.log_file and not args.verbose:
+    args.verbose = 'info'
+
+diagnostic_log = DiagnosticLog(args.verbose, args.log_file or default_log_file())
 
 
 sys.excepthook = log_uncaught_exception
